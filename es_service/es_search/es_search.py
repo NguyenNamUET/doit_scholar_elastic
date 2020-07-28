@@ -22,7 +22,16 @@ def get_all_fields_of_study(es, index):
     return result["aggregations"]["fields_of_study"]["buckets"]
 
 
-def get_all_papers(es, index, start, size, source=None):
+def get_paper_by_id(es, index, id):
+    try:
+        res = es.get(index=index, id=id)
+        return res['_source']
+    except NotFoundError:
+        print('not found')
+        return {}
+
+
+def get_all_papers(es, index, start=0, size=10, source=None):
     if source is None:
         source = get_paper_default_source()
 
@@ -44,10 +53,10 @@ def get_all_papers(es, index, start, size, source=None):
 
     result = es.search(index=index, body=query)
     print("Get all papers result :", result)
-    return result
+    return result["hits"]["hits"]
 
 
-def search_paper_title(search_content, es, index, start, size, source=None, sort_by=None,
+def search_paper_title(search_content, es, index, start=0, size=10, source=None, sort_by=None,
                        return_top_author=False, top_author_size=10):
     if source is None:
         source = get_paper_default_source()
@@ -173,3 +182,6 @@ def search_paper_abstract(search_content, es, index, start, size, source=None, s
 
     return result
 
+
+if __name__ == "__main__":
+    get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)

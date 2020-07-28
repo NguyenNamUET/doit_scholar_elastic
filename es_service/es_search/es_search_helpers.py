@@ -1,5 +1,5 @@
 def get_paper_default_source():
-    return ["corpusID", "abstract", "authors", "fieldsOfStudy"]
+    return ["corpusID", "abstract", "authors", "fieldsOfStudy","title","topics"]
 
 
 def get_paper_default_sort():
