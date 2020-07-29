@@ -13,7 +13,7 @@ def index_paper_document(paper_document):
                       "fieldsOfStudy": paper_document["fieldsOfStudy"],
                       "title": paper_document["title"],
                       "topics": paper_document["topics"],
-                      "influentialCitationCount":paper_document["influentialCitationCount"],
+                      "influentialCitationCount": paper_document["influentialCitationCount"],
                       "authors": paper_document["authors"],
                       "citations": [],
                       "references": []
@@ -34,12 +34,12 @@ def index_paper_document(paper_document):
     if len(paper_document["references"]) > 0:
         for reference in paper_document["references"]:
             index_reference = {"authors": reference["authors"],
-                              "corpusID": reference["corpusID"],
-                              "title": reference["title"],
-                              "year": reference["year"],
-                              "venue": reference["venue"],
-                              "intent": reference["intent"]
-                              }
+                               "corpusID": reference["corpusID"],
+                               "title": reference["title"],
+                               "year": reference["year"],
+                               "venue": reference["venue"],
+                               "intent": reference["intent"]
+                               }
             index_document["references"].append(index_reference)
 
     es = elasticsearch_connection
@@ -50,10 +50,10 @@ def index_paper_document(paper_document):
 
 
 def index_papers():
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=20)
 
-    for idx, file in enumerate(os.listdir(PAPERS_DATA_PATH)[:10]):
-        paper_document = load_json(PAPERS_DATA_PATH+file)
+    for idx, file in enumerate(os.listdir(PAPERS_DATA_PATH)):
+        paper_document = load_json(PAPERS_DATA_PATH + file)
         executor.submit(index_paper_document, paper_document)
 
 

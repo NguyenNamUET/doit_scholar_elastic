@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 def index_author_document(author_document):
     index_document = {"authorId": author_document["authorId"],
-                      "aliases":author_document["aliases"],
+                      "aliases": author_document["aliases"],
                       "name": author_document["name"],
                       "influentialCitationCount": author_document["influentialCitationCount"],
                       "totalPapers": len(author_document["papers"]),
@@ -22,7 +22,7 @@ def index_author_document(author_document):
             index_paper = {"corpusID": paper["corpusID"],
                            "title": paper["title"],
                            "year": paper["year"]
-                          }
+                           }
             index_document["papers"].append(index_paper)
 
     es = elasticsearch_connection
@@ -33,16 +33,16 @@ def index_author_document(author_document):
 
 
 def index_authors():
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=20)
 
-    for idx, file in enumerate(os.listdir(AUTHORS_DATA_PATH)[:10]):
-        author_document = load_json(AUTHORS_DATA_PATH+file)
+    for idx, file in enumerate(os.listdir(AUTHORS_DATA_PATH)):
+        author_document = load_json(AUTHORS_DATA_PATH + file)
         executor.submit(index_author_document, author_document)
 
 
 if __name__ == "__main__":
-    #authorID = 1702520 & 1828961
-    #Overlap: paperID = 2708220
+    # authorID = 1702520 & 1828961
+    # Overlap: paperID = 2708220
     # author_document = load_json("/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/authors/author_1699095.json")
     # print(author_document)
     index_authors()
