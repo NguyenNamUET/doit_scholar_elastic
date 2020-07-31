@@ -25,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):
@@ -46,7 +48,7 @@ def getPaperByID(paperID: int):
 
 
 @app.post("/s2api/papers/getAllpapers")
-def getAllPapers(query:paperItem):
+def getAllPapers(query: paperItem):
     result = get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, query.start, query.size)
     return result
 
@@ -58,7 +60,7 @@ def getAllFieldOfStudy():
 
 
 @app.post("/s2api/papers/searchPaperTitle")
-def searchPaperTitle(query:paperItem):
+def searchPaperTitle(query: paperItem):
     result = search_paper_title(search_content=query.searchContent,
                                 es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
@@ -70,7 +72,7 @@ def searchPaperTitle(query:paperItem):
 
 
 @app.post("/s2api/papers/searchPaperAbstract")
-def searchPaperAbstract(query:paperItem):
+def searchPaperAbstract(query: paperItem):
     result = search_paper_abstract(search_content=query.searchContent,
                                    es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
@@ -88,7 +90,7 @@ def getAllTopics():
 
 
 @app.post("/s2api/papers/getPaperByTopic")
-def getPaperByTopic(query:paperItem):
+def getPaperByTopic(query: paperItem):
     result = get_paper_by_topic(es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
                                 topic=query.topic)
