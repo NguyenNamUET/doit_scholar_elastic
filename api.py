@@ -1,6 +1,7 @@
 from typing import Optional, List
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_constant.constants import PAPER_DOCUMENT_INDEX
@@ -12,8 +13,31 @@ from es_service.es_search.es_search_author import get_author_by_id, get_author_b
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:3000",
+    "https://localhost:3000"
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Run command: uvicorn api:app --reload
+
+class paperItem(BaseModel):
+    searchContent: str
+    start: Optional[int] = 0
+    size: Optional[int] = 10
+    return_top_author: Optional[bool] = False
+    top_author_size: Optional[int] = 10
+
+
+class authorItem(BaseModel):
+    author_name: str
+
 
 @app.get("/s2api/papers/{paperID}")
 def getPaperByID(paperID: int):
@@ -22,8 +46,8 @@ def getPaperByID(paperID: int):
 
 
 @app.post("/s2api/papers/getAllpapers")
-def getAllPapers(start: Optional[int] = 0, size: Optional[int] = 10):
-    result = get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, start, size)
+def getAllPapers(query:paperItem):
+    result = get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, query.start, query.size)
     return result
 
 
@@ -34,28 +58,26 @@ def getAllFieldOfStudy():
 
 
 @app.post("/s2api/papers/searchPaperTitle")
-def searchPaperTitle(searchContent: str, start: Optional[str] = 0, size: Optional[str] = 10,
-                     return_top_author: Optional[bool] = False, top_author_size: Optional[str] = 10):
-    result = search_paper_title(search_content=searchContent,
+def searchPaperTitle(query:paperItem):
+    result = search_paper_title(search_content=query.searchContent,
                                 es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
-                                start=start,
-                                size=size,
-                                return_top_author=return_top_author,
-                                top_author_size=top_author_size)
+                                start=query.start,
+                                size=query.size,
+                                return_top_author=query.return_top_author,
+                                top_author_size=query.top_author_size)
     return result
 
 
 @app.post("/s2api/papers/searchPaperAbstract")
-def searchPaperAbstract(searchContent: str, start: Optional[int] = 0, size: Optional[int] = 10,
-                        return_top_author: Optional[bool] = False, top_author_size: Optional[int] = 10):
-    result = search_paper_abstract(search_content=searchContent,
+def searchPaperAbstract(query:paperItem):
+    result = search_paper_abstract(search_content=query.searchContent,
                                    es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
-                                   start=start,
-                                   size=size,
-                                   return_top_author=return_top_author,
-                                   top_author_size=top_author_size)
+                                   start=query.start,
+                                   size=query.size,
+                                   return_top_author=query.return_top_author,
+                                   top_author_size=query.top_author_size)
     return result
 
 
@@ -66,10 +88,10 @@ def getAllTopics():
 
 
 @app.post("/s2api/papers/getPaperByTopic")
-def getPaperByTopic(topic: List[str] = Query(None)):
+def getPaperByTopic(query:paperItem):
     result = get_paper_by_topic(es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
-                                topic=topic)
+                                topic=query.topic)
     return result
 
 
@@ -84,8 +106,8 @@ def getAuthorById(author_id: str):
 
 
 @app.post("/s2api/authors/getAuthorByName")
-def getAuthorByName(author_name: str):
+def getAuthorByName(query: authorItem):
     result = get_author_by_name(es=elasticsearch_connection,
                                 index=AUTHOR_DOCUMENT_INDEX,
-                                name=author_name)
+                                name=query.author_name)
     return result
