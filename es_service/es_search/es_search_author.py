@@ -4,18 +4,29 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_search.es_search_helpers import get_author_default_sort
 from es_service.es_search.es_search_helpers import get_author_default_source
 
+from elasticsearch import NotFoundError
 
-def get_author_by_id(es, index, author_id):
-    query = {
-        "query": {
-            "match": {
-                "authorId": author_id
-            }
-        }
-    }
-    result = es.search(index=index, body=query)
-    print("Author by id:", result)
-    return result["hits"]["hits"]
+
+def get_author_by_id(es, index, id):
+    try:
+        res = es.get(index=index, id=id)
+        return res['_source']
+    except NotFoundError:
+        print('not found')
+        return {}
+
+
+# def get_author_by_id(es, index, author_id):
+#     query = {
+#         "query": {
+#             "match": {
+#                 "authorId": author_id
+#             }
+#         }
+#     }
+#     result = es.search(index=index, body=query)
+#     print("Author by id:", result)
+#     return result["hits"]["hits"]
 
 
 def get_author_by_name(es, index, name):

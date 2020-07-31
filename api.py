@@ -34,8 +34,8 @@ def getAllFieldOfStudy():
 
 
 @app.post("/s2api/papers/searchPaperTitle")
-def searchPaperTitle(searchContent: str, start: Optional[int] = 0, size: Optional[int] = 10,
-                     return_top_author: Optional[bool] = False, top_author_size: Optional[int] = 10):
+def searchPaperTitle(searchContent: str, start: Optional[str] = 0, size: Optional[str] = 10,
+                     return_top_author: Optional[bool] = False, top_author_size: Optional[str] = 10):
     result = search_paper_title(search_content=searchContent,
                                 es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
@@ -75,11 +75,11 @@ def getPaperByTopic(topic: List[str] = Query(None)):
 
 # All authors api
 
-@app.post("/s2api/authors/getAuthorById")
+@app.get("/s2api/authors/{author_id}")
 def getAuthorById(author_id: str):
     result = get_author_by_id(es=elasticsearch_connection,
                               index=AUTHOR_DOCUMENT_INDEX,
-                              author_id=author_id)
+                              id=author_id)
     return result
 
 
