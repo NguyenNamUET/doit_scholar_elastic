@@ -31,11 +31,13 @@ app.add_middleware(
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):
-    searchContent: str
+    searchContent: Optional[str] = "neural"
     start: Optional[int] = 0
     size: Optional[int] = 10
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
+    topics: Optional[List[str]] = Query(None)
+
 
 class authorItem(BaseModel):
     author_name: str
@@ -93,7 +95,7 @@ def getAllTopics():
 def getPaperByTopic(query:paperItem):
     result = get_paper_by_topic(es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
-                                topic=query.topic)
+                                topics=query.topics)
     return result
 
 

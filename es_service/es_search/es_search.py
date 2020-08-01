@@ -159,15 +159,54 @@ def search_paper_abstract(search_content, es, index, start, size, source=None, s
     return result
 
 
-def get_paper_by_topic(es, index, topic):
-    query = {
-        "query": {
-            "terms": {
-                "topics.topic": topic
-            }
-        }
-    }
+def get_paper_by_topic(es, index, topics, start=0, size=10, source=None, sort_by=None, is_should=True):
+    if source is None:
+        source = get_paper_default_source()
 
+    if sort_by is None:
+        sort = get_paper_default_sort()
+
+    if is_should:
+        query = {
+            "query": {
+                "bool": {
+                    "should": []
+                }
+            },
+            "from": start,
+            "size": size,
+            "_source": source,
+            "sort": [sort]
+        }
+        for topic in topics:
+            query["query"]["bool"]["should"].append({
+                            "match": {
+                                "topics.topic": {
+                                    "query": topic
+                                }
+                            }
+                        })
+    else:
+        query = {
+            "query": {
+                "bool": {
+                    "must": []
+                }
+            },
+            "from": start,
+            "size": size,
+            "_source": ["topics.topic"],
+            "sort": [sort]
+        }
+        for topic in topics:
+            query["query"]["bool"]["must"].append({
+                "match": {
+                    "topics.topic": {
+                        "query": topic
+                    }
+                }
+            })
+    print('Get paper by topic query: ', query)
     result = es.search(index=index, body=query)
     print('Get paper by topic: ', result)
     return result['hits']['hits']
@@ -193,5 +232,4 @@ def get_all_topics(es, index):
 if __name__ == "__main__":
     # get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)
     # get_paper_by_topic(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 'Simulation')
-    search_paper_title(search_content="the", es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, start=0, size=10, source=None, sort_by=None,
-                       return_top_author=True, top_author_size=10)
+    get_paper_by_topic(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, topics=["Engineering"], is_should=False)
