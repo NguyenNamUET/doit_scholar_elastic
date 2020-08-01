@@ -90,10 +90,10 @@ def getAllTopics():
 
 
 @app.post("/s2api/papers/getPaperByTopic")
-def getPaperByTopic(query: paperItem):
+def getPaperByTopic(topics: List[str] = Query(None)):
     result = get_paper_by_topic(es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
-                                topic=query.topic)
+                                topic=topics)
     return result
 
 
