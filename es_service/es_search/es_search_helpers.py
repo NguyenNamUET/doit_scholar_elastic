@@ -8,9 +8,30 @@ def get_paper_default_sort():
 
 def get_paper_aggregation_of_fields_of_study():
     return {
-        "fields_of_study": {
-            "terms": {
-                "field": "fieldsOfStudy.keyword"
+        "terms": {
+            "field": "fieldsOfStudy.keyword"
+        }
+    }
+
+
+def get_paper_aggregation_of_authors(size):
+    return {
+        "nested": {
+            "path": "authors"
+        },
+        "aggs": {
+            "name": {
+                "terms": {
+                    "field": "authors.authorId.keyword",
+                    "size": size
+                },
+                "aggs": {
+                    "name": {
+                        "terms": {
+                            "field": "authors.name.keyword"
+                        }
+                    }
+                }
             }
         }
     }

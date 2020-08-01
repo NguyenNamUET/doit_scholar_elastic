@@ -14,8 +14,11 @@ from es_service.es_search.es_search_author import get_author_by_id, get_author_b
 app = FastAPI()
 
 origins = [
+    "http://localhost",
     "http://localhost:3000",
-    "https://localhost:3000"
+    "https://localhost:3000",
+    "http://127.0.0.1:8000",
+    "https://127.0.0.1:8000",
 ]
 
 app.add_middleware(
@@ -33,7 +36,6 @@ class paperItem(BaseModel):
     size: Optional[int] = 10
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
-
 
 class authorItem(BaseModel):
     author_name: str
