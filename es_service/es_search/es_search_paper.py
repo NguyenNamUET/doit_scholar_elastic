@@ -20,9 +20,9 @@ def get_all_fields_of_study(es, index):
     return result["aggregations"]["fields_of_study"]["buckets"]
 
 
-def get_paper_by_id(es, index, id):
+def get_paper_by_id(es, index, paper_id):
     try:
-        res = es.get(index=index, id=id)
+        res = es.get(index=index, id=paper_id)
         return res['_source']
     except NotFoundError:
         print('not found')
@@ -232,4 +232,4 @@ def get_all_topics(es, index):
 if __name__ == "__main__":
     # get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)
     # get_paper_by_topic(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 'Simulation')
-    get_paper_by_topic(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, topics=["Engineering"], is_should=False)
+    search_paper_title(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, )

@@ -7,7 +7,7 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_constant.constants import PAPER_DOCUMENT_INDEX
 from es_constant.constants import AUTHOR_DOCUMENT_INDEX
 
-from es_service.es_search.es_search import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
+from es_service.es_search.es_search_paper import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
     search_paper_title, search_paper_abstract, get_all_topics, get_paper_by_topic
 from es_service.es_search.es_search_author import get_author_by_id, get_author_by_name
 
@@ -33,26 +33,29 @@ app.add_middleware(
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):
-    searchContent: Optional[str] = "neural"
+    search_content: Optional[str] = "neural"
     start: Optional[int] = 0
     size: Optional[int] = 10
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
+
+
+class topicItem(BaseModel):
     topics: Optional[List[str]] = Query(None)
-    source: Optional[List[str]] = Query(None)
-    sort_by: Optional[str] = Query(None)
-    topic_is_should: Optional[bool] = True
+    start: Optional[int] = 0
+    size: Optional[int] = 10
+    topic_is_should: Optional[bool] = False
 
 
 class authorItem(BaseModel):
     author_name: str
 
-
+################################# All papers api ###########################
 @app.get("/s2api/papers/{paperID}")
-def getPaperByID(paperID: int):
+def getpaperByID(paperID: int):
     result = get_paper_by_id(es=elasticsearch_connection,
                              index=PAPER_DOCUMENT_INDEX,
-                             id=paperID)
+                             paper_id=paperID)
     return result
 
 
@@ -74,29 +77,25 @@ def getAllFieldOfStudy():
 
 @app.post("/s2api/papers/searchPaperTitle")
 def searchPaperTitle(query: paperItem):
-    result = search_paper_title(search_content=query.searchContent,
+    result = search_paper_title(search_content=query.search_content,
                                 es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
                                 start=query.start,
                                 size=query.size,
                                 return_top_author=query.return_top_author,
-                                top_author_size=query.top_author_size,
-                                source=query.source,
-                                sort_by=query.sort_by)
+                                top_author_size=query.top_author_size)
     return result
 
 
 @app.post("/s2api/papers/searchPaperAbstract")
 def searchPaperAbstract(query: paperItem):
-    result = search_paper_abstract(search_content=query.searchContent,
+    result = search_paper_abstract(search_content=query.search_content,
                                    es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
                                    start=query.start,
                                    size=query.size,
                                    return_top_author=query.return_top_author,
-                                   top_author_size=query.top_author_size,
-                                   source=query.source,
-                                   sort_by=query.sort_by)
+                                   top_author_size=query.top_author_size)
     return result
 
 
@@ -108,20 +107,18 @@ def getAllTopics():
 
 
 @app.post("/s2api/papers/getPaperByTopic")
-def getPaperByTopic(query: paperItem):
+def getPaperByTopic(query: topicItem):
     result = get_paper_by_topic(es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
                                 topics=query.topics,
                                 start=query.start,
                                 size=query.size,
-                                source=query.source,
-                                sort_by=query.sort_by,
                                 is_should=query.topic_is_should)
     return result
 
 
-# All authors api
 
+################################# All authors api ###########################
 @app.get("/s2api/authors/{author_id}")
 def getAuthorById(author_id: str):
     result = get_author_by_id(es=elasticsearch_connection,
