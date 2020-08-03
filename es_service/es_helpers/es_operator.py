@@ -24,5 +24,6 @@ def create_index(es, index, mapping, verbose=True):
 
 
 if __name__ == "__main__":
-    from es_constant.constants import AUTHOR_MAPPING
-    create_index(elasticsearch_connection, "author", AUTHOR_MAPPING)
+    from es_constant.constants import PAPER_MAPPING, PAPER_DOCUMENT_INDEX
+
+    create_index(elasticsearch_connection, PAPER_DOCUMENT_INDEX, PAPER_MAPPING)

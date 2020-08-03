@@ -1,5 +1,5 @@
-PAPERS_DATA_PATH = "E:\\New folder\\papers\\"
-AUTHORS_DATA_PATH = "E:\\New folder\\authors\\"
+PAPERS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/papers/"
+AUTHORS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/authors/"
 ES_IP = 'localhost'
 ES_USER = 'user'
 ES_PASS = '12345678'
@@ -20,6 +20,7 @@ PAPER_MAPPING = {
                 }
             },
             "authors": {
+                "type": "nested",
                 "properties": {
                     "authorId": {
                         "type": "text",
@@ -50,11 +51,100 @@ PAPER_MAPPING = {
                     }
                 }
             },
-            "citationVelocity": {
-                "type": "long"
-            },
-            "corpusId": {
-                "type": "long"
+            "citations": {
+                "properties": {
+                    "authors": {
+                        "properties": {
+                            "authorId": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "name": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "corpusID": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "doi": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "intent": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "isInfluential": {
+                        "type": "boolean"
+                    },
+                    "paperId": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "title": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "url": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "venue": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "year": {
+                        "type": "long"
+                    }
+                }
             },
             "fieldsOfStudy": {
                 "type": "text",
@@ -68,18 +158,68 @@ PAPER_MAPPING = {
             "influentialCitationCount": {
                 "type": "long"
             },
-            "is_open_access": {
-                "type": "boolean"
-            },
-            "is_publisher_licensed": {
-                "type": "boolean"
-            },
-            "paperId": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
+            "references": {
+                "properties": {
+                    "authors": {
+                        "properties": {
+                            "authorId": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            },
+                            "name": {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "corpusID": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "intent": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "title": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "venue": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "year": {
+                        "type": "long"
                     }
                 }
             },
@@ -92,26 +232,36 @@ PAPER_MAPPING = {
                     }
                 }
             },
-            "url": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
+            "topics": {
+                "properties": {
+                    "topic": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "topicId": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "url": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
                     }
                 }
-            },
-            "venue": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
-                    }
-                }
-            },
-            "year": {
-                "type": "long"
             }
         }
     }
