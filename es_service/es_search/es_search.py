@@ -181,7 +181,7 @@ def get_paper_by_topic(es, index, topics, start=0, size=10, source=None, sort_by
         for topic in topics:
             query["query"]["bool"]["should"].append({
                             "match": {
-                                "topics.topic": {
+                                "topics.topicId": {
                                     "query": topic
                                 }
                             }
@@ -195,13 +195,13 @@ def get_paper_by_topic(es, index, topics, start=0, size=10, source=None, sort_by
             },
             "from": start,
             "size": size,
-            "_source": ["topics.topic"],
+            "_source": source,
             "sort": [sort]
         }
         for topic in topics:
             query["query"]["bool"]["must"].append({
                 "match": {
-                    "topics.topic": {
+                    "topics.topicId": {
                         "query": topic
                     }
                 }

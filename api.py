@@ -28,6 +28,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):
@@ -37,6 +39,9 @@ class paperItem(BaseModel):
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
     topics: Optional[List[str]] = Query(None)
+    source: Optional[List[str]] = Query(None)
+    sort_by: Optional[str] = Query(None)
+    topic_is_should: Optional[bool] = True
 
 
 class authorItem(BaseModel):
@@ -45,57 +50,73 @@ class authorItem(BaseModel):
 
 @app.get("/s2api/papers/{paperID}")
 def getPaperByID(paperID: int):
-    result = get_paper_by_id(elasticsearch_connection, PAPER_DOCUMENT_INDEX, paperID)
+    result = get_paper_by_id(es=elasticsearch_connection,
+                             index=PAPER_DOCUMENT_INDEX,
+                             id=paperID)
     return result
 
 
 @app.post("/s2api/papers/getAllpapers")
-def getAllPapers(query:paperItem):
-    result = get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, query.start, query.size)
+def getAllPapers(query: paperItem):
+    result = get_all_papers(es=elasticsearch_connection,
+                            index=PAPER_DOCUMENT_INDEX,
+                            start=query.start,
+                            size=query.size)
     return result
 
 
 @app.post("/s2api/papers/getAllFieldOfStudy")
 def getAllFieldOfStudy():
-    result = get_all_fields_of_study(elasticsearch_connection, PAPER_DOCUMENT_INDEX)
+    result = get_all_fields_of_study(es=elasticsearch_connection,
+                                     index=PAPER_DOCUMENT_INDEX)
     return result
 
 
 @app.post("/s2api/papers/searchPaperTitle")
-def searchPaperTitle(query:paperItem):
+def searchPaperTitle(query: paperItem):
     result = search_paper_title(search_content=query.searchContent,
                                 es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
                                 start=query.start,
                                 size=query.size,
                                 return_top_author=query.return_top_author,
-                                top_author_size=query.top_author_size)
+                                top_author_size=query.top_author_size,
+                                source=query.source,
+                                sort_by=query.sort_by)
     return result
 
 
 @app.post("/s2api/papers/searchPaperAbstract")
-def searchPaperAbstract(query:paperItem):
+def searchPaperAbstract(query: paperItem):
     result = search_paper_abstract(search_content=query.searchContent,
                                    es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
                                    start=query.start,
                                    size=query.size,
                                    return_top_author=query.return_top_author,
-                                   top_author_size=query.top_author_size)
+                                   top_author_size=query.top_author_size,
+                                   source=query.source,
+                                   sort_by=query.sort_by)
     return result
 
 
 @app.post("/s2api/papers/getAllTopics")
 def getAllTopics():
-    result = get_all_topics(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX)
+    result = get_all_topics(es=elasticsearch_connection,
+                            index=PAPER_DOCUMENT_INDEX)
     return result
 
 
 @app.post("/s2api/papers/getPaperByTopic")
-def getPaperByTopic(query:paperItem):
+def getPaperByTopic(query: paperItem):
     result = get_paper_by_topic(es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
-                                topics=query.topics)
+                                topics=query.topics,
+                                start=query.start,
+                                size=query.size,
+                                source=query.source,
+                                sort_by=query.sort_by,
+                                is_should=query.topic_is_should)
     return result
 
 
