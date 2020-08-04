@@ -38,17 +38,22 @@ class paperItem(BaseModel):
     size: Optional[int] = 10
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
+    source: Optional[List[str]] = Query(None)
+    sort_by: Optional[str] = Query(None)
 
 
 class topicItem(BaseModel):
     topics: Optional[List[str]] = Query(None)
     start: Optional[int] = 0
     size: Optional[int] = 10
+    source: Optional[List[str]] = Query(None)
+    sort_by: Optional[str] = Query(None)
     topic_is_should: Optional[bool] = False
 
 
 class authorItem(BaseModel):
     author_name: str
+
 
 ################################# All papers api ###########################
 @app.get("/s2api/papers/{paperID}")
@@ -82,6 +87,8 @@ def searchPaperTitle(query: paperItem):
                                 index=PAPER_DOCUMENT_INDEX,
                                 start=query.start,
                                 size=query.size,
+                                source=query.source,
+                                sort_by=query.sort_by,
                                 return_top_author=query.return_top_author,
                                 top_author_size=query.top_author_size)
     return result
@@ -94,6 +101,8 @@ def searchPaperAbstract(query: paperItem):
                                    index=PAPER_DOCUMENT_INDEX,
                                    start=query.start,
                                    size=query.size,
+                                   source=query.source,
+                                   sort_by=query.sort_by,
                                    return_top_author=query.return_top_author,
                                    top_author_size=query.top_author_size)
     return result
@@ -113,9 +122,10 @@ def getPaperByTopic(query: topicItem):
                                 topics=query.topics,
                                 start=query.start,
                                 size=query.size,
+                                source=query.source,
+                                sort_by=query.sort_by,
                                 is_should=query.topic_is_should)
     return result
-
 
 
 ################################# All authors api ###########################
