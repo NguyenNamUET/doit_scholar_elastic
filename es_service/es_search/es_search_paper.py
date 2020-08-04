@@ -159,7 +159,10 @@ def search_paper_abstract(search_content, es, index, start, size, source=None, s
     return result
 
 
-def get_paper_by_topic(es, index, topics, start=0, size=10, source=None, sort_by=None, is_should=True):
+def get_paper_by_fos(es, index, fields_of_study,
+                     start=0, size=10, source=None, sort_by=None, is_should=True,
+                     return_top_author=False, top_author_size=10,
+                     debug=False):
     if source is None:
         source = get_paper_default_source()
 
@@ -178,11 +181,11 @@ def get_paper_by_topic(es, index, topics, start=0, size=10, source=None, sort_by
             "_source": source,
             "sort": [sort]
         }
-        for topic in topics:
+        for fos in fields_of_study:
             query["query"]["bool"]["should"].append({
                             "match": {
-                                "topics.topicId": {
-                                    "query": topic
+                                "fieldsOfStudy.keyword": {
+                                    "query": fos
                                 }
                             }
                         })
@@ -198,18 +201,27 @@ def get_paper_by_topic(es, index, topics, start=0, size=10, source=None, sort_by
             "_source": source,
             "sort": [sort]
         }
-        for topic in topics:
+        for fos in fields_of_study:
             query["query"]["bool"]["must"].append({
                 "match": {
-                    "topics.topicId": {
-                        "query": topic
+                    "fieldsOfStudy.keyword": {
+                        "query": fos
                     }
                 }
             })
-    print('Get paper by topic query: ', query)
-    result = es.search(index=index, body=query)
-    print('Get paper by topic: ', result)
-    return result['hits']['hits']
+    if return_top_author:
+        query["aggs"] = {
+            "author_count": get_paper_aggregation_of_authors(size=top_author_size),
+            "fields_of_study": get_paper_aggregation_of_fields_of_study()
+        }
+    if debug:
+        return query
+    else:
+
+        print('Get paper by topic query: ', query)
+        result = es.search(index=index, body=query)
+        print('Get paper by topic: ', result)
+        return result
 
 
 def get_all_topics(es, index):
@@ -229,7 +241,45 @@ def get_all_topics(es, index):
     return result['aggregations']['topics']
 
 
+def get_paper_by_title_and_fos(es, index, search_content, fields_of_study,
+                               start=0, size=10, source=None, sort_by=None, is_should=True,
+                               return_top_author=False, top_author_size=10):
+    fos_query = get_paper_by_fos(es=es, index=index, fields_of_study=fields_of_study, is_should=is_should,
+                                 return_top_author=return_top_author, top_author_size=top_author_size,
+                                 debug=True)
+
+    query = fos_query
+    if is_should:
+        query["query"]["bool"]["must"] = []
+        query["query"]["bool"]["must"].append({
+                "match": {
+                    "title": {
+                        "query": search_content,
+                        "fuzziness": 1
+                    }
+                }
+            })
+
+    else:
+        query["query"]["bool"]["must"].append({
+            "match": {
+                "title": {
+                    "query": search_content,
+                    "fuzziness": 1
+                }
+            }
+        })
+
+    result = es.search(index=index, body=query)
+    print('Get paper by title and topics query: ', query)
+    print('Get paper by title and topics result: ', result)
+    return result
+
+
 if __name__ == "__main__":
     # get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)
-    # get_paper_by_topic(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 'Simulation')
-    search_paper_title(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, )
+    #get_paper_by_fos(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, fields_of_study=['Engineering'], return_top_author=True)
+    get_paper_by_title_and_fos(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                               search_content="a", fields_of_study=["Engineering"],
+                               return_top_author=True, top_author_size=100,
+                               is_should=False)
