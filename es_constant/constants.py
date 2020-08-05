@@ -53,6 +53,7 @@ PAPER_MAPPING = {
                 }
             },
             "citations": {
+                "type":"nested",
                 "properties": {
                     "authors": {
                         "properties": {
@@ -160,6 +161,7 @@ PAPER_MAPPING = {
                 "type": "long"
             },
             "references": {
+                "type":"nested",
                 "properties": {
                     "authors": {
                         "properties": {

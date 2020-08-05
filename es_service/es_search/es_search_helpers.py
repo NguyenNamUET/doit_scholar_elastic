@@ -3,7 +3,7 @@ def get_paper_default_source():
 
 
 def get_paper_default_sort():
-    return {"_score": "desc"}
+    return [{"corpusID": "asc"}, {"_score": "desc"}]
 
 
 def get_paper_aggregation_of_fields_of_study():
