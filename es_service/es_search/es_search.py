@@ -232,4 +232,5 @@ def get_all_topics(es, index):
 if __name__ == "__main__":
     # get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)
     # get_paper_by_topic(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 'Simulation')
-    get_paper_by_topic(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, topics=["Engineering"], is_should=False)
+    # get_paper_by_topic(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, topics=["Engineering"], is_should=False)
+    search_paper_title(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, search_content='a', size=10, start=0, return_top_author=True, top_author_size=10)

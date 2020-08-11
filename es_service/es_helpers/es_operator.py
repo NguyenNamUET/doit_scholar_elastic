@@ -15,7 +15,7 @@ def insert_doc(es, index, id, body, routing=None, verbose=True):
 
 
 def create_index(es, index, mapping, verbose=True):
-    print (index)
+    print(index)
     res = es.indices.create(index=index, ignore=400, body=mapping)
     if verbose:
         print(res)
