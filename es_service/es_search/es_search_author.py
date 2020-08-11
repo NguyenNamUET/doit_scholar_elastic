@@ -10,6 +10,7 @@ from elasticsearch import NotFoundError
 def get_author_by_id(es, index, id):
     try:
         res = es.get(index=index, id=id)
+        print("Author id {}: {}".format(id, res['_source']))
         return res['_source']
     except NotFoundError:
         print('not found')
@@ -51,5 +52,4 @@ def get_author_by_name(es, index, name):
 
 
 if __name__ == "__main__":
-    get_author_by_name(elasticsearch_connection, AUTHOR_DOCUMENT_INDEX, 'wang')
-    get_author_by_id(elasticsearch_connection, AUTHOR_DOCUMENT_INDEX, '120789427')
+    get_author_by_id(elasticsearch_connection, AUTHOR_DOCUMENT_INDEX, '1699095')

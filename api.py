@@ -7,8 +7,10 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_constant.constants import PAPER_DOCUMENT_INDEX
 from es_constant.constants import AUTHOR_DOCUMENT_INDEX
 
-from es_service.es_search.es_search import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
-    search_paper_title, search_paper_abstract, get_all_topics, get_paper_by_topic
+from es_service.es_search.es_search_paper import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
+    get_all_topics
+from es_service.es_search.es_search_paper import search_paper_title, search_paper_abstract, search_paper_by_fos, \
+    search_paper_by_title_and_fos
 from es_service.es_search.es_search_author import get_author_by_id, get_author_by_name
 
 app = FastAPI()
@@ -33,26 +35,36 @@ app.add_middleware(
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):
-    searchContent: Optional[str] = "neural"
-    start: Optional[int] = 0
-    size: Optional[int] = 10
+    search_content: Optional[str] = "neural"
+    topics: Optional[List[str]] = Query(None)
+
+    # Condion for fields match (False=must, True=should)
+    topic_is_should: Optional[bool] = False
+    # Fields of study aggs
+    return_fos_aggs: Optional[bool] = False
+    # Pagination
+    deep_pagination: Optional[bool] = False
+    last_paper_id: Optional[int] = 0
+    # Top author aggs
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
-    topics: Optional[List[str]] = Query(None)
+    # Optional parameters
+    start: Optional[int] = 0
+    size: Optional[int] = 10
     source: Optional[List[str]] = Query(None)
     sort_by: Optional[str] = Query(None)
-    topic_is_should: Optional[bool] = True
 
 
 class authorItem(BaseModel):
     author_name: str
 
 
+################################# All papers api ###########################
 @app.get("/s2api/papers/{paperID}")
-def getPaperByID(paperID: int):
+def getpaperByID(paperID: int):
     result = get_paper_by_id(es=elasticsearch_connection,
                              index=PAPER_DOCUMENT_INDEX,
-                             id=paperID)
+                             paper_id=paperID)
     return result
 
 
@@ -72,34 +84,6 @@ def getAllFieldOfStudy():
     return result
 
 
-@app.post("/s2api/papers/searchPaperTitle")
-def searchPaperTitle(query: paperItem):
-    result = search_paper_title(search_content=query.searchContent,
-                                es=elasticsearch_connection,
-                                index=PAPER_DOCUMENT_INDEX,
-                                start=query.start,
-                                size=query.size,
-                                return_top_author=query.return_top_author,
-                                top_author_size=query.top_author_size,
-                                source=query.source,
-                                sort_by=query.sort_by)
-    return result
-
-
-@app.post("/s2api/papers/searchPaperAbstract")
-def searchPaperAbstract(query: paperItem):
-    result = search_paper_abstract(search_content=query.searchContent,
-                                   es=elasticsearch_connection,
-                                   index=PAPER_DOCUMENT_INDEX,
-                                   start=query.start,
-                                   size=query.size,
-                                   return_top_author=query.return_top_author,
-                                   top_author_size=query.top_author_size,
-                                   source=query.source,
-                                   sort_by=query.sort_by)
-    return result
-
-
 @app.post("/s2api/papers/getAllTopics")
 def getAllTopics():
     result = get_all_topics(es=elasticsearch_connection,
@@ -107,21 +91,80 @@ def getAllTopics():
     return result
 
 
-@app.post("/s2api/papers/getPaperByTopic")
-def getPaperByTopic(query: paperItem):
-    result = get_paper_by_topic(es=elasticsearch_connection,
+@app.post("/s2api/papers/searchPaperTitle")
+def searchPaperTitle(query: paperItem):
+    result = search_paper_title(search_content=query.search_content,
+                                es=elasticsearch_connection,
                                 index=PAPER_DOCUMENT_INDEX,
-                                topics=query.topics,
                                 start=query.start,
                                 size=query.size,
                                 source=query.source,
                                 sort_by=query.sort_by,
-                                is_should=query.topic_is_should)
+                                return_fos_aggs=query.return_fos_aggs,
+                                return_top_author=query.return_top_author,
+                                top_author_size=query.top_author_size,
+                                deep_pagination=query.deep_pagination,
+                                last_paper_id=query.last_paper_id)
     return result
 
 
-# All authors api
+@app.post("/s2api/papers/searchPaperAbstract")
+def searchPaperAbstract(query: paperItem):
+    result = search_paper_abstract(search_content=query.search_content,
+                                   es=elasticsearch_connection,
+                                   index=PAPER_DOCUMENT_INDEX,
+                                   start=query.start,
+                                   size=query.size,
+                                   source=query.source,
+                                   sort_by=query.sort_by,
+                                   return_fos_aggs=query.return_fos_aggs,
+                                   return_top_author=query.return_top_author,
+                                   top_author_size=query.top_author_size,
+                                   deep_pagination=query.deep_pagination,
+                                   last_paper_id=query.last_paper_id)
+    return result
 
+
+@app.post("/s2api/papers/searchPaperFOS")
+def searchPaperFOS(query: paperItem):
+    result = search_paper_by_fos(es=elasticsearch_connection,
+                                 index=PAPER_DOCUMENT_INDEX,
+                                 fields_of_study=query.topics,
+                                 start=query.start,
+                                 size=query.size,
+                                 source=query.source,
+                                 sort_by=query.sort_by,
+                                 is_should=query.topic_is_should,
+                                 return_fos_aggs=query.return_fos_aggs,
+                                 return_top_author=query.return_top_author,
+                                 top_author_size=query.top_author_size,
+                                 deep_pagination=query.deep_pagination,
+                                 last_paper_id=query.last_paper_id
+                                 )
+    return result
+
+
+@app.post("/s2api/papers/searchPaperByTitleAndFOS")
+def searchPaperByTitleAndFOS(query: paperItem):
+    result = search_paper_by_title_and_fos(es=elasticsearch_connection,
+                                           search_content=query.search_content,
+                                           index=PAPER_DOCUMENT_INDEX,
+                                           fields_of_study=query.topics,
+                                           start=query.start,
+                                           size=query.size,
+                                           source=query.source,
+                                           sort_by=query.sort_by,
+                                           is_should=query.topic_is_should,
+                                           return_fos_aggs=query.return_fos_aggs,
+                                           return_top_author=query.return_top_author,
+                                           top_author_size=query.top_author_size,
+                                           deep_pagination=query.deep_pagination,
+                                           last_paper_id=query.last_paper_id
+                                           )
+    return result
+
+
+################################# All authors api ###########################
 @app.get("/s2api/authors/{author_id}")
 def getAuthorById(author_id: str):
     result = get_author_by_id(es=elasticsearch_connection,

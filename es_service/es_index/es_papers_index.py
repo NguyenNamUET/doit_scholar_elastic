@@ -9,7 +9,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def index_paper_document(paper_document):
-    index_document = {"abstract": paper_document["abstract"],
+    paperID = paper_document.get('corpusId')
+    index_document = {"corpusID": paperID,
+                      "abstract": paper_document["abstract"],
                       "fieldsOfStudy": paper_document["fieldsOfStudy"],
                       "title": paper_document["title"],
                       "topics": paper_document["topics"],
@@ -44,7 +46,7 @@ def index_paper_document(paper_document):
 
     es = elasticsearch_connection
     index = PAPER_DOCUMENT_INDEX
-    paperID = paper_document.get('corpusId')
+
     insert_doc(es=es, index=index, id=paperID, body=index_document, verbose=True)
     print("Success paper")
 

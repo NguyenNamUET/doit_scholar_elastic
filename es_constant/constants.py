@@ -7,6 +7,7 @@ ES_PORT = '9202'
 PAPER_DOCUMENT_INDEX = 'paper'
 AUTHOR_DOCUMENT_INDEX = 'author'
 
+###Description of PAPER_MAPPING: Nested authors field for aggregration
 PAPER_MAPPING = {
     "mappings": {
         "properties": {
@@ -52,6 +53,7 @@ PAPER_MAPPING = {
                 }
             },
             "citations": {
+                "type":"nested",
                 "properties": {
                     "authors": {
                         "properties": {
@@ -159,6 +161,7 @@ PAPER_MAPPING = {
                 "type": "long"
             },
             "references": {
+                "type":"nested",
                 "properties": {
                     "authors": {
                         "properties": {
