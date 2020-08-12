@@ -1,9 +1,17 @@
 def get_paper_default_source():
-    return ["corpusID", "abstract", "authors", "fieldsOfStudy", "title", "topics"]
+    return ["corpusID", "doi", "abstract", "authors", "fieldsOfStudy", "title", "topics"]
 
 
 def get_paper_default_sort():
     return [{"corpusID": "asc"}, {"_score": "desc"}]
+
+
+def count_fields_of_study_buckets():
+    return {
+      "cardinality": {
+        "field": "fieldsOfStudy.keyword"
+      }
+    }
 
 
 def get_paper_aggregation_of_fields_of_study():

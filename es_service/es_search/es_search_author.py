@@ -7,6 +7,19 @@ from es_service.es_search.es_search_helpers import get_author_default_source
 from elasticsearch import NotFoundError
 
 
+def get_all_authors(es, index, start=0, size=0):
+    query = {
+        "query": {
+            "match_all": {}
+        },
+        "from": start,
+        "size": size
+    }
+    res = es.search(index=index, body=query)
+    print("Get all authors result :", res)
+    return res["hits"]
+
+
 def get_author_by_id(es, index, id):
     try:
         res = es.get(index=index, id=id)
@@ -52,4 +65,4 @@ def get_author_by_name(es, index, name):
 
 
 if __name__ == "__main__":
-    get_author_by_id(elasticsearch_connection, AUTHOR_DOCUMENT_INDEX, '1699095')
+    print(get_all_authors(elasticsearch_connection, AUTHOR_DOCUMENT_INDEX))

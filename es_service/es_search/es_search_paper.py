@@ -6,20 +6,22 @@ from es_constant.constants import PAPER_DOCUMENT_INDEX
 from es_service.es_helpers.es_connection import elasticsearch_connection
 
 from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_aggregation_of_authors, \
-    get_paper_aggregation_of_fields_of_study, get_paper_default_sort
+    get_paper_aggregation_of_fields_of_study, get_paper_default_sort, count_fields_of_study_buckets
 
 
-def get_all_fields_of_study(es, index):
+def get_all_fields_of_study(es, index, size=10):
     query = {
         "size": 0,
         "aggs": {
-            "fields_of_study": get_paper_aggregation_of_fields_of_study()
+            "fields_of_study": get_paper_aggregation_of_fields_of_study(),
+            "fos_unique_count": count_fields_of_study_buckets()
         }
     }
 
     result = es.search(index=index, body=query)
-    print("Get all fields of study result :", query)
-    return result["aggregations"]["fields_of_study"]["buckets"]
+    print("Get all fields of study query :", query)
+    print("Get all fields of study result :", result)
+    return result["aggregations"]
 
 
 def get_paper_by_id(es, index, paper_id):
@@ -49,7 +51,7 @@ def get_all_papers(es, index, start=0, size=10, source=None):
 
     result = es.search(index=index, body=query)
     print("Get all papers result :", result)
-    return result["hits"]["hits"]
+    return result["hits"]
 
 
 def get_all_topics(es, index):
@@ -369,8 +371,4 @@ def search_paper_by_topics(es, index, topics,
 if __name__ == "__main__":
     # get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)
 
-    search_paper_by_topics(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-                           topics=["Simulation"],
-                           source=["topics"],
-                           return_fos_aggs=True,
-                           size=5)
+    get_all_fields_of_study(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX)

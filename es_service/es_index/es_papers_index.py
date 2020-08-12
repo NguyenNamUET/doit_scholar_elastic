@@ -12,6 +12,7 @@ def index_paper_document(paper_document):
     paperID = paper_document.get('corpusId')
     index_document = {"corpusID": paperID,
                       "abstract": paper_document["abstract"],
+                      "doi": paper_document["doi"],
                       "fieldsOfStudy": paper_document["fieldsOfStudy"],
                       "title": paper_document["title"],
                       "topics": paper_document["topics"],
@@ -32,7 +33,6 @@ def index_paper_document(paper_document):
                               }
             index_document["citations"].append(index_citation)
 
-    index_document["references"] = []
     if len(paper_document["references"]) > 0:
         for reference in paper_document["references"]:
             index_reference = {"authors": reference["authors"],
