@@ -1,9 +1,9 @@
 PAPERS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/papers/"
 AUTHORS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/authors/"
-ES_IP = 'localhost'
-ES_USER = 'user'
-ES_PASS = '12345678'
-ES_PORT = '9202'
+ES_IP = 'localhost' #112.137.142.8
+ES_USER = 'user' #default
+ES_PASS = '12345678' #changeme
+ES_PORT = '9202' #7778
 PAPER_DOCUMENT_INDEX = 'paper'
 AUTHOR_DOCUMENT_INDEX = 'author'
 

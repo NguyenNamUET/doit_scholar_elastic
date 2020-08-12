@@ -1,3 +1,49 @@
+#version: '3.7'
+#services:
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.0
+#    container_name: elasticsearch1
+#    environment:
+#      - bootstrap.memory_lock=true
+#      - discovery.type=single-node
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#      - http.cors.enabled=true
+#      - http.cors.allow-origin=*
+#      - network.host=_eth0_
+#    volumes:
+#      - type: volume
+#        source: logs
+#        target: /var/log
+#      - type: volume
+#        source: esdata1
+#        target: /usr/share/elasticsearch/data
+#    networks:
+#      - elastic
+#    ports:
+#      - 9202:9200
+#      - 9302:9300
+#
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:7.8.0
+#    container_name: kibana
+#    environment:
+#      SERVER_NAME: localhost
+#      ELASTICSEARCH_URL: http://elasticsearch1:9200/
+#    ports:
+#      - 5602:5601
+#    volumes:
+#      - type: volume
+#        source: logs
+#        target: /var/log
+#    networks:
+#      - elastic
+#
+#volumes:
+#  esdata1:
+#  logs:
+#
+#networks:
+#  elastic:
 version: '3.7'
 services:
   elasticsearch:
@@ -37,6 +83,18 @@ services:
         target: /var/log
     networks:
       - elastic
+
+#  app:
+#    container_name: app
+#    build: .
+#    command: uvicorn api:app --host=0.0.0.0 --port=8080 #8000 for local
+#    ports:
+#      - 8080:8080 #8000:8000 for local
+#    depends_on:
+#      - elasticsearch
+#    networks:
+#      - elastic
+
 
 volumes:
   esdata1:

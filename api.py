@@ -10,7 +10,7 @@ from es_constant.constants import AUTHOR_DOCUMENT_INDEX
 from es_service.es_search.es_search_paper import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
     get_all_topics
 from es_service.es_search.es_search_paper import search_paper_title, search_paper_abstract, search_paper_by_fos, \
-    search_paper_by_title_and_fos
+    search_paper_by_title_and_fos, search_paper_by_topics
 from es_service.es_search.es_search_author import get_author_by_id, get_author_by_name
 
 app = FastAPI()
@@ -21,6 +21,8 @@ origins = [
     "https://localhost:3000",
     "http://127.0.0.1:8000",
     "https://127.0.0.1:8000",
+    #"http:112.137.142.8:7778",
+    #"http:112.137.142.8:3400"
 ]
 
 app.add_middleware(
@@ -37,9 +39,10 @@ app.add_middleware(
 class paperItem(BaseModel):
     search_content: Optional[str] = "neural"
     topics: Optional[List[str]] = Query(None)
-
+    fields_of_study: Optional[List[str]] = Query(None)
     # Condion for fields match (False=must, True=should)
     topic_is_should: Optional[bool] = False
+    fos_is_should: Optional[bool] = False
     # Fields of study aggs
     return_fos_aggs: Optional[bool] = False
     # Pagination
@@ -105,6 +108,7 @@ def searchPaperTitle(query: paperItem):
                                 top_author_size=query.top_author_size,
                                 deep_pagination=query.deep_pagination,
                                 last_paper_id=query.last_paper_id)
+
     return result
 
 
@@ -129,7 +133,7 @@ def searchPaperAbstract(query: paperItem):
 def searchPaperFOS(query: paperItem):
     result = search_paper_by_fos(es=elasticsearch_connection,
                                  index=PAPER_DOCUMENT_INDEX,
-                                 fields_of_study=query.topics,
+                                 fields_of_study=query.fields_of_study,
                                  start=query.start,
                                  size=query.size,
                                  source=query.source,
@@ -149,18 +153,36 @@ def searchPaperByTitleAndFOS(query: paperItem):
     result = search_paper_by_title_and_fos(es=elasticsearch_connection,
                                            search_content=query.search_content,
                                            index=PAPER_DOCUMENT_INDEX,
-                                           fields_of_study=query.topics,
+                                           fields_of_study=query.fields_of_study,
                                            start=query.start,
                                            size=query.size,
                                            source=query.source,
                                            sort_by=query.sort_by,
-                                           is_should=query.topic_is_should,
+                                           is_should=query.fos_is_should,
                                            return_fos_aggs=query.return_fos_aggs,
                                            return_top_author=query.return_top_author,
                                            top_author_size=query.top_author_size,
                                            deep_pagination=query.deep_pagination,
                                            last_paper_id=query.last_paper_id
                                            )
+    return result
+
+
+@app.post("/s2api/papers/searchPaperByTopics")
+def searchPaperByTopics(query: paperItem):
+    result = search_paper_by_topics(es=elasticsearch_connection,
+                                    index=PAPER_DOCUMENT_INDEX,
+                                    topics=query.topics,
+                                    start=query.start,
+                                    size=query.size,
+                                    source=query.source,
+                                    sort_by=query.sort_by,
+                                    return_fos_aggs=query.return_fos_aggs,
+                                    return_top_author=query.return_top_author,
+                                    top_author_size=query.top_author_size,
+                                    deep_pagination=query.deep_pagination,
+                                    last_paper_id=query.last_paper_id
+                                    )
     return result
 
 

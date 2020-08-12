@@ -1,25 +1,12 @@
-var = {
-  "author_count": {
-    "doc_count": 69,
-    "name": {
-      "doc_count_error_upper_bound": 0,
-      "sum_other_doc_count": 59,
-      "buckets": [
-        {
-          "key": "100659372",
-          "doc_count": 1,
-          "name": {
-            "doc_count_error_upper_bound": 0,
-            "sum_other_doc_count": 0,
-            "buckets": [
-              {
-                "key": "Harold Joseph Noble",
-                "doc_count": 1
-              }
-            ]
-          }
-        }
-      ],
-    }
-  }
-}
+if __name__ == "__main__":
+    from es_service.es_helpers.es_connection import elasticsearch_connection
+    from es_constant.constants import PAPER_MAPPING, PAPER_DOCUMENT_INDEX
+    from es_service.es_helpers.es_operator import create_index
+    create_index(elasticsearch_connection, PAPER_DOCUMENT_INDEX, PAPER_MAPPING)
+
+    from es_service.es_index.es_papers_index import index_papers
+    index_papers()
+
+    from es_service.es_index.es_authors_index import index_authors
+    index_authors()
+
