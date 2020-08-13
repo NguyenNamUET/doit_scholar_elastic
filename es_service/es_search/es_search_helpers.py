@@ -51,3 +51,5 @@ def get_author_default_source():
 
 def get_author_default_sort():
     return {"_score": "desc"}
+
+

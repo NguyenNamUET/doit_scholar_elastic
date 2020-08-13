@@ -287,8 +287,9 @@ def search_paper_by_title_and_fos(es, index, search_content, fields_of_study,
                                     debug=True)
 
     query = fos_query
+    query["query"]["bool"]["must"] = []
     if is_should:
-        query["query"]["bool"]["must"] = []
+
         query["query"]["bool"]["must"].append({
             "match": {
                 "title": {
@@ -297,6 +298,16 @@ def search_paper_by_title_and_fos(es, index, search_content, fields_of_study,
                 }
             }
         })
+        query["query"]["bool"]["must"].append(
+            {"bool":
+                 {"should":
+                      query["query"]["bool"]["should"]
+                 }
+            }
+        )
+
+        del (query["query"]["bool"]["should"])
+
 
     else:
         query["query"]["bool"]["must"].append({
@@ -307,7 +318,7 @@ def search_paper_by_title_and_fos(es, index, search_content, fields_of_study,
                 }
             }
         })
-
+    print(query)
     result = es.search(index=index, body=query)
     print('Get paper by title and topics query: ', query)
     print('Get paper by title and topics result: ', result)
@@ -371,4 +382,8 @@ def search_paper_by_topics(es, index, topics,
 if __name__ == "__main__":
     # get_all_papers(elasticsearch_connection, PAPER_DOCUMENT_INDEX, 0, 10)
 
-    get_all_fields_of_study(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX)
+    search_paper_by_title_and_fos(es=elasticsearch_connection,
+                                  index=PAPER_DOCUMENT_INDEX,
+                                  search_content="k",
+                                  fields_of_study=["Computer Science", "Engineering"],
+                                  is_should=False)
