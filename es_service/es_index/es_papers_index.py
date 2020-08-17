@@ -60,6 +60,41 @@ def index_papers():
 
 
 if __name__ == "__main__":
-    # paper_document = load_json("/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/papers/paper_2420401.json")
-    # print(paper_document)
-    index_papers()
+    paper_document = {
+          "corpusId" : 20496540,
+          "abstract" : "The challenge to provide a nation-wide healthcare service continues unabated in the 21st century as politicians and managers drive through policies to modernize the UK National Health Service (NHS). Established around 60 years ago to offer free healthcare at the point of delivery to all citizens, the NHS now accounts for the largest portion of public expenditure after social security, with total spending around Â£84 billion in 2006/2007. Over the past 3 decades, the political agenda within healthcare has moved from one of professional dominance, where clinicians and their representative bodies dominated the leadership and management of healthcare organisations, to one where politicians have imposed new ideas in the form of market mechanisms and the â€œnew public managementâ€ which extend the use of private sector firms. The political justification for these reforms is to make the NHS more efficient and cost effective and to develop an ethos of patient choice.",
+          "doi" : "10.4018/jcit.2008100101",
+          "fieldsOfStudy" : [
+            "Computer Science",
+            "Engineering"
+          ],
+          "title" : "(NAM ADDED THIS)A Centrist Approach to Introducing ICT in Healthcare: Policies, Practices, and Pitfalls",
+          "topics" : [
+            {
+              "topic" : "Point of delivery (networking)",
+              "topicId" : "3560731",
+              "url" : "https://www.semanticscholar.org/topic/3560731"
+            },
+            {
+              "topic" : "Social security",
+              "topicId" : "859610",
+              "url" : "https://www.semanticscholar.org/topic/859610"
+            }
+          ],
+          "influentialCitationCount" : 0,
+          "authors" : [
+            {
+              "authorId" : "1870755",
+              "name" : "David Jesse Finnegan",
+              "url" : "https://www.semanticscholar.org/author/1870755"
+            },
+            {
+              "authorId" : "1723170",
+              "name" : "Yochai Ataria",
+              "url" : "https://www.semanticscholar.org/author/1723170"
+            }
+          ],
+          "citations" : [],
+          "references" : []
+        }
+    elasticsearch_connection.delete(PAPER_DOCUMENT_INDEX, "k2nJ93MBeSBNH3hzXcdL")
