@@ -11,8 +11,9 @@ from es_constant.constants import PAPER_DOCUMENT_INDEX
 from es_constant.constants import AUTHOR_DOCUMENT_INDEX
 
 from es_service.es_search.es_search_paper import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
-    get_all_topics
-from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, search_by_topics
+    get_all_topics, get_some_citations, get_some_references
+from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
+    search_by_topics
 
 from es_service.es_search.es_search_author import get_author_by_id, get_author_by_name, get_all_authors
 
@@ -36,12 +37,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
     )
+
+
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):
@@ -156,6 +160,24 @@ def searchPaperByTopics(query: paperItem):
                               return_fos_aggs=query.return_fos_aggs,
                               deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                               return_top_author=query.return_top_author, top_author_size=query.top_author_size)
+
+    return result
+
+
+@app.get("/s2api/papers/{paperID}/citations")
+def getSomeCitations(paperID: int, start: Optional[int] = 0, size: Optional[int] = 5):
+    result = get_some_citations(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                                paper_id=paperID,
+                                start=start, size=size)
+
+    return result
+
+
+@app.get("/s2api/papers/{paperID}/references")
+def getSomeReferences(paperID: int, start: Optional[int] = 0, size: Optional[int] = 5):
+    result = get_some_references(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                                 paper_id=paperID,
+                                 start=start, size=size)
 
     return result
 

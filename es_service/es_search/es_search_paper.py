@@ -200,7 +200,7 @@ def search_by_title(es, index, search_content,
                   }
              }
     query["query"]["bool"]["must"].append(title_query)
-    
+
     if venue is not None:
         venue_query = search_paper_venue__builder(venue=venue)
 
@@ -359,11 +359,28 @@ def get_all_topics(es, index):
     return result['aggregations']['topics']
 
 
+def get_some_citations(es, index,
+                       paper_id,
+                       start=0, size=5):
+    try:
+        res = es.get(index=index, id=paper_id)
+        return res["_source"]["citations"][start:start + size]
+    except NotFoundError:
+        print('paper {} not found'.format(paper_id))
+        return {}
+
+
+def get_some_references(es, index,
+                        paper_id,
+                        start=0, size=5):
+    try:
+        res = es.get(index=index, id=paper_id)
+        return res["_source"]["references"][start:start + size]
+    except NotFoundError:
+        print('paper {} not found'.format(paper_id))
+        return {}
+
+
 if __name__ == "__main__":
-    search_by_title(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, search_content="a",
-                    authors=["David Jesse Finnegan", "Yochai Ataria"], author_isShould=True,
-                    fields_of_study=None, fos_isShould=True,
-                    start=0, size=10, source=["corpusID", "title", "authors.name"], sort_by=None,
-                    return_fos_aggs=False,
-                    deep_pagination=False, last_paper_id=None,
-                    return_top_author=False, top_author_size=10)
+    a = [0,1,2,3,4,5,6,7,8,9,10]
+    print(a[5:10])
