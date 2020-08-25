@@ -7,7 +7,6 @@ elasticsearch_connection = Elasticsearch(
     verify_certs=False, timeout=30)  # http://user:12345678@localhost:9202
 
 
-
 def check_status_es(es):
     if not es.ping():
         raise ValueError("Connection failed")

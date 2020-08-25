@@ -49,6 +49,18 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
     return query
 
 
+def search_paper_venue__builder(venue):
+    query = {
+        "match": {
+            "venue": {
+                "query": venue
+            }
+        }
+    }
+    print("search_paper_venue__builder: ", query)
+    return query
+
+
 def search_paper_title__builder(search_content):
     query = {
         "match": {
@@ -170,6 +182,7 @@ def search_by_author__builder(authors, author_isShould):
 
 ####I assemble these builder here to create function
 def search_by_title(es, index, search_content,
+                    venue=None,
                     authors=None, author_isShould=False,
                     fields_of_study=None, fos_isShould=True,
                     start=0, size=10, source=None, sort_by=None,
@@ -181,34 +194,32 @@ def search_by_title(es, index, search_content,
                                          return_fos_aggs=return_fos_aggs,
                                          deep_pagination=deep_pagination, last_paper_id=last_paper_id)
     title_query = search_paper_title__builder(search_content=search_content)
+    query = {"query":
+                 {"bool":
+                      {"must": []}
+                  }
+             }
+    query["query"]["bool"]["must"].append(title_query)
+    
+    if venue is not None:
+        venue_query = search_paper_venue__builder(venue=venue)
+
+        query["query"]["bool"]["must"].append(venue_query)
     if fields_of_study is not None:
         fos_query = search_paper_by_fos__builder(fields_of_study=fields_of_study,
                                                  fos_isShould=fos_isShould)
-        query = {"query":
-                     {"bool":
-                          {"must": []}
-                      }
-                 }
-        query["query"]["bool"]["must"].append(title_query)
+
         query["query"]["bool"]["must"].append(fos_query)
 
-    elif authors is not None:
+    if authors is not None:
         authors_query = search_by_author__builder(authors=authors,
                                                   author_isShould=author_isShould)
-        query = {"query":
-                     {"bool":
-                          {"must": []}
-                      }
-                 }
-        query["query"]["bool"]["must"].append(title_query)
+
         if author_isShould:
             query["query"]["bool"]["must"].append(authors_query)
         else:
             for author_query in authors_query["query"]:
                 query["query"]["bool"]["must"].append(author_query)
-
-    else:
-        query = {"query": title_query}
 
     query.update(common_query)
     print("search_by_title query: ", query)

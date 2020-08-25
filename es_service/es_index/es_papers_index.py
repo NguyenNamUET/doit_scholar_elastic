@@ -44,10 +44,7 @@ def index_paper_document(paper_document):
                                }
             index_document["references"].append(index_reference)
 
-    es = elasticsearch_connection
-    index = PAPER_DOCUMENT_INDEX
-
-    insert_doc(es=es, index=index, id=paperID, body=index_document, verbose=True)
+    insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX, id=paperID, body=index_document, verbose=True)
     print("Success paper")
 
 
@@ -61,14 +58,14 @@ def index_papers():
 
 if __name__ == "__main__":
     paper_document = {
-          "corpusId" : 20496540,
+          "corpusId" : 12031999,
           "abstract" : "The challenge to provide a nation-wide healthcare service continues unabated in the 21st century as politicians and managers drive through policies to modernize the UK National Health Service (NHS). Established around 60 years ago to offer free healthcare at the point of delivery to all citizens, the NHS now accounts for the largest portion of public expenditure after social security, with total spending around Â£84 billion in 2006/2007. Over the past 3 decades, the political agenda within healthcare has moved from one of professional dominance, where clinicians and their representative bodies dominated the leadership and management of healthcare organisations, to one where politicians have imposed new ideas in the form of market mechanisms and the â€œnew public managementâ€ which extend the use of private sector firms. The political justification for these reforms is to make the NHS more efficient and cost effective and to develop an ethos of patient choice.",
           "doi" : "10.4018/jcit.2008100101",
           "fieldsOfStudy" : [
-            "Computer Science",
+            "Medicine",
             "Engineering"
           ],
-          "title" : "(NAM ADDED THIS)A Centrist Approach to Introducing ICT in Healthcare: Policies, Practices, and Pitfalls",
+          "title" : "(NAM ADDED THIS medicine)A Centrist Approach to Introducing ICT in Healthcare: Policies, Practices, and Pitfalls",
           "topics" : [
             {
               "topic" : "Point of delivery (networking)",
@@ -97,4 +94,4 @@ if __name__ == "__main__":
           "citations" : [],
           "references" : []
         }
-    elasticsearch_connection.delete(PAPER_DOCUMENT_INDEX, "k2nJ93MBeSBNH3hzXcdL")
+    index_paper_document(paper_document)

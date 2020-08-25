@@ -1,5 +1,8 @@
 from typing import Optional, List
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,9 +23,9 @@ origins = [
     "http://localhost:3000",
     "https://localhost:3000",
     "http://127.0.0.1:8000",
-    "https://127.0.0.1:8000",
-    # "http:112.137.142.8:7778",
-    # "http:112.137.142.8:3400"
+    "http://localhost:8000",
+    # "http://112.137.142.8:7778",
+    # "http://112.137.142.8:3400"
 ]
 
 app.add_middleware(
@@ -33,7 +36,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+    )
 # Run command: uvicorn api:app --reload
 
 class paperItem(BaseModel):

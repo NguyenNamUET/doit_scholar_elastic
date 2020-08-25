@@ -23,7 +23,16 @@ def create_index(es, index, mapping, verbose=True):
     return True
 
 
+def delete_index(es, index, verbose=True):
+    print(index)
+    res = es.indices.delete(index=index, ignore=400)
+    if verbose:
+        print(res)
+        print("Success")
+    return True
+
+
 if __name__ == "__main__":
     from es_constant.constants import PAPER_MAPPING, PAPER_DOCUMENT_INDEX
 
-    create_index(elasticsearch_connection, PAPER_DOCUMENT_INDEX, PAPER_MAPPING)
+    delete_index(elasticsearch_connection, "idmapping")
