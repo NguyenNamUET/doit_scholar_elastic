@@ -1,98 +1,54 @@
-import requests
-import concurrent.futures
-import re
-from bs4 import BeautifulSoup
 from es_service.es_helpers.es_connection import elasticsearch_connection
-from es_service.es_helpers.es_operator import insert_doc
-from es_service.es_helpers.utilites import write_to_record
+from es_service.es_helpers.es_operator import insert_doc, create_index
+from es_service.es_index.es_authors_index import index_author_document
+from es_service.es_index.es_papers_index import index_paper_document
 
-ID_MAPPING_DOCUMENT_INDEX = "idmapping"
+
+from es_service.es_helpers.utilites import extract_url_id, crawl_base_sitemap, crawl_second_sitemap, \
+    get_paper_api_v2, grouper
+
+from es_constant.constants import PAPER_TEST_MAPPING
+
+import concurrent.futures
 
 
-def load_url(url, return_content=False, proxy=False, return_json=False):
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
-               "Connection": "keep-alive",
-               "Accept-Language": "en-US,en;q=0.5"}
+def index_documents(author_url):
+    author_id = extract_url_id(author_url)
     try:
-        if proxy:  ##Do not reveal this proxy
-            proxies = {
-                "https": "https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225"
-            }
-            response = requests.get(url, headers=headers, proxies=proxies)
+        # insert_doc(es=elasticsearch_connection, index="paper_test",
+        #            id=paper_id, body=paper_document)
+        author_document = index_author_document(author_id)
 
-        else:
-            response = requests.get(url)
+        if len(author_document["papers"]) > 0:
+            for paper in author_document["papers"]:
+                index_paper_document(paper["paperId"])
+                print("Success paper")
 
-        if return_content:
-            soup = BeautifulSoup(response.content, "html.parser")
-            return soup
-        elif return_json:
-            return response.json()
-        else:
-            return response
+        print("Success author")
+
     except Exception as e:
-        print("load_url() error: ", e)
+        print("Author {} index error: {}".format(author_id, e))
+
+    return author_id
 
 
-def crawl_base_sitemap():
-    base_sitemap = "https://www.semanticscholar.org/sitemap_paper_index.xml"
-    base_sitemap_soup = load_url(base_sitemap, return_content=True, proxy=True)
-    all_sitemaps_soup = base_sitemap_soup.find_all("loc")
-    return [sitemap.text for sitemap in all_sitemaps_soup]
-
-
-def crawl_papers_sitemap(sitemap_url):
-    sitemap_content = load_url(sitemap_url, return_content=True, proxy=True)
-    all_paper_urls_soup = sitemap_content.find_all("loc")
-    return [sitemap.text for sitemap in all_paper_urls_soup]
-
-
-def get_corpus_id_from_paper_url(paper_url):
-    soup = load_url(paper_url, return_content=True, proxy=True)
-    corpus_span = soup.find_all("span", {"data-selenium-selector": "corpus-id"})[0]
-
-    return re.findall("\d+", corpus_span.text)[0]
-
-
-def get_paper_id_from_paper_url(paper_url):
-    find_slash = list(re.finditer("\/", paper_url))[-1]
-    return paper_url[find_slash.span()[1]:]
-
-
-def index_mapping_document(paper_url):
-    corpusID = get_corpus_id_from_paper_url(paper_url)
-    paperID = get_paper_id_from_paper_url(paper_url)
-
-    mapping = {"paperID":paperID, "corpusID":corpusID}
-    insert_doc(elasticsearch_connection, ID_MAPPING_DOCUMENT_INDEX, corpusID, mapping)
-    print("Successful")
-    return corpusID
-
-
-def index_mapping(papers_sitemap):
+def index_data():
+    author_sitemaps_list = crawl_base_sitemap("https://www.semanticscholar.org/sitemap_author_index.xml")
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        # Start the load operations and mark each future with its URL
-        future_id = {executor.submit(index_mapping_document, psm): psm for psm in papers_sitemap}
-        for future in concurrent.futures.as_completed(future_id):
-            psm = future_id[future]
-            try:
-                mapping = future.result()
-            except Exception as exc:
-                print("%r generated an exception: %s" % (psm, exc))
-                write_to_record(psm, "/home/nguyennam/Downloads/doit_scholar_elastic/failed_sitemaps.txt",
-                                is_append=True, by_line=True)
+        for author_sitemap in author_sitemaps_list[:20]:
+            author_urls = crawl_second_sitemap(author_sitemap)
+            if author_urls is not None:
+                for index, urls_group in enumerate(grouper(author_urls, 1000)):
+                    future_to_url = {executor.submit(index_documents, author_url): author_url for author_url in urls_group if author_url is not None}
+                    for future in concurrent.futures.as_completed(future_to_url):
+                        author_url = future_to_url[future]
+                        try:
+                            author_id = future.result()
+                        except Exception as exc:
+                            print('%r generated an exception: %s' % (author_url, exc))
 
 
 if __name__ == "__main__":
-    paper_base_sitemap_list = crawl_base_sitemap()
-    for paper_base_sitemap in paper_base_sitemap_list[9:]:
-        papers_sitemap = crawl_papers_sitemap(paper_base_sitemap)
-        index_mapping(papers_sitemap)
-    # from es_service.es_helpers.utilites import read_text
-    # path_1 = "/home/nguyennam/Downloads/collected_paperID.txt"
-    # path_2 = "/home/nguyennam/Downloads/papers"
-    # path_3 = "/home/nguyennam/Downloads/authors"
-    # paperIDs = read_text(path_1)
-    # paperURLs = ["https://api.semanticscholar.org/{}".format(id) for id in paperIDs]
-    # index_mapping(paperURLs)
+    #create_index(elasticsearch_connection, "paper_test", PAPER_TEST_MAPPING)
+    index_data()
 

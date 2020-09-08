@@ -60,9 +60,7 @@ services:
       - type: volume
         source: logs
         target: /var/log
-      - type: volume
-        source: esdata1
-        target: /usr/share/elasticsearch/data
+      - esdata1:/usr/share/elasticsearch/data
     networks:
       - elastic
     ports:
@@ -98,6 +96,7 @@ services:
 
 volumes:
   esdata1:
+    driver: local
   logs:
 
 networks:

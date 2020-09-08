@@ -20,27 +20,13 @@ def get_all_authors(es, index, start=0, size=0):
     return res["hits"]
 
 
-def get_author_by_id(es, index, id):
+def get_author_by_id(es, index, author_id, start=0, size=5):
     try:
-        res = es.get(index=index, id=id)
-        print("Author id {}: {}".format(id, res['_source']))
-        return res['_source']
+        res = es.get(index=index, id=author_id)
+        return res["_source"]["papers"][start:start + size]
     except NotFoundError:
-        print('not found')
+        print('author_id {} not found'.format(author_id))
         return {}
-
-
-# def get_author_by_id(es, index, author_id):
-#     query = {
-#         "query": {
-#             "match": {
-#                 "authorId": author_id
-#             }
-#         }
-#     }
-#     result = es.search(index=index, body=query)
-#     print("Author by id:", result)
-#     return result["hits"]["hits"]
 
 
 def get_author_by_name(es, index, name):
@@ -65,4 +51,4 @@ def get_author_by_name(es, index, name):
 
 
 if __name__ == "__main__":
-    print(get_all_authors(elasticsearch_connection, AUTHOR_DOCUMENT_INDEX))
+    get_author_by_id(elasticsearch_connection, "author_test", 52098299, 5, 5)

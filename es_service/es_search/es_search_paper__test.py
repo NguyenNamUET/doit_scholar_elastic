@@ -4,27 +4,29 @@ from es_constant.constants import PAPER_DOCUMENT_INDEX
 from es_service.es_helpers.es_connection import elasticsearch_connection
 
 from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_aggregation_of_authors, \
-    get_paper_aggregation_of_fields_of_study, get_paper_default_sort, count_fields_of_study_buckets
+    get_paper_aggregation_of_fields_of_study, get_paper_default_sort, count_fields_of_study_buckets, \
+    get_paper_aggregation_of_venues
 
 
 ##Straight forward functions (no building query by hand)
 def get_paper_by_id(es, index, paper_id):
     try:
         paper = es.get(index=index, id=paper_id)
-        res = {"doi":paper['_source']["doi"],
-               "corpusId":paper['_source']["corpusId"],
+        res = {"doi": paper['_source']["doi"],
+               "corpusId": paper['_source']["corpusId"],
                "title": paper['_source']["title"],
                "venue": paper['_source']["venue"],
                "year": paper['_source']["year"],
                "abstract": paper['_source']["abstract"],
                "authors": paper['_source']["authors"],
                "fieldsOfStudy": paper['_source']["fieldsOfStudy"],
+               "topics": paper['_source']["topics"],
                "citationVelocity": paper['_source']["citationVelocity"],
                "citations": paper['_source']["citations"][:5],
                "references": paper['_source']["references"][:5],
                "citations_length": len(paper['_source']["citations"]),
                "references_length": len(paper['_source']["references"])
-              }
+               }
         return res
     except NotFoundError:
         print('not found')
@@ -36,18 +38,19 @@ def get_paper_by_id(es, index, paper_id):
 def common_query__builder(start=0, size=10, source=None, sort_by=None,
                           return_top_author=False, top_author_size=10,
                           return_fos_aggs=False,
+                          return_venue_aggs=False,
                           deep_pagination=False, last_paper_id=None):
     if source is None:
         source = get_paper_default_source()
 
     if sort_by is None:
-        sort = get_paper_default_sort()
+        sort_by = get_paper_default_sort()
 
     query = {"from": start,
              "size": size,
              "aggs": {},
              "_source": source,
-             "sort": sort}
+             "sort": sort_by}
 
     if deep_pagination:
         query["search_after"] = [last_paper_id, 0]
@@ -57,7 +60,10 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
         query["aggs"]["author_count"] = get_paper_aggregation_of_authors(size=top_author_size)
 
     if return_fos_aggs:
-        query["aggs"]["fields_of_study"] = get_paper_aggregation_of_fields_of_study()
+        query["aggs"]["fos_count"] = get_paper_aggregation_of_fields_of_study()
+
+    if return_venue_aggs:
+        query["aggs"]["venue_count"] = get_paper_aggregation_of_venues()
 
     print("common_query__builder: ", query)
     return query
@@ -68,7 +74,7 @@ def search_paper_title__builder(search_content):
         "match": {
             "title": {
                 "query": search_content,
-                "fuzziness": 1
+                "fuzziness": 2
             }
         }
     }
@@ -222,11 +228,13 @@ def search_by_title(es, index, search_content,
                     fields_of_study=None, fos_isShould=True,
                     start=0, size=10, source=None, sort_by=None,
                     return_fos_aggs=False,
+                    return_venue_aggs=False,
                     deep_pagination=False, last_paper_id=None,
                     return_top_author=False, top_author_size=10):
     common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
+                                         return_venue_aggs=return_venue_aggs,
                                          deep_pagination=deep_pagination, last_paper_id=last_paper_id)
     title_query = search_paper_title__builder(search_content=search_content)
     query = {"query":
@@ -240,6 +248,7 @@ def search_by_title(es, index, search_content,
         venues_query = search_paper_by_venues__builder(venues=venues, venues_isShould=venues_isShould)
 
         query["query"]["bool"]["must"].append(venues_query)
+
     if fields_of_study is not None:
         fos_query = search_paper_by_fos__builder(fields_of_study=fields_of_study,
                                                  fos_isShould=fos_isShould)
@@ -311,7 +320,7 @@ def search_by_fields_of_study(es, index,
     if result["hits"]["total"]["value"] == 0:
         return {}
 
-    return result
+    return result.hits.hits
 
 
 def search_by_topics(es, index,
@@ -338,7 +347,29 @@ def search_by_topics(es, index,
     return result
 
 
-########################## These functions are merely for counting (no complex search) #############
+def search_on_typing(es, index, search_content, size=10):
+    common_query = common_query__builder(source=["title", "citations_count"], sort_by=[{"citations_count": "desc"}])
+    query = {
+      "query": {
+        "match": {
+          "title": {
+            "query": search_content
+          }
+        }
+      }
+    }
+    query.update(common_query)
+    print("search_on_typing query: ", query)
+
+    result = es.search(index=index, body=query)
+    if result["hits"]["total"]["value"] == 0:
+        return {}
+
+    print("search_on_typing result: ", result["hits"]["hits"])
+    return result["hits"]["hits"]
+
+
+# These functions are merely for counting (no complex search)
 def get_all_fields_of_study(es, index, size=10):
     query = {
         "size": 0,
@@ -352,6 +383,46 @@ def get_all_fields_of_study(es, index, size=10):
     result = es.search(index=index, body=query)
     print("Get all fields of study result :", result)
     return result["aggregations"]
+
+
+def get_all_papers(es, index,
+                   start=0, size=10, source=None, sort_by=None,
+                   return_fos_aggs=False,
+                   deep_pagination=False, last_paper_id=None,
+                   return_top_author=False, top_author_size=10):
+    common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
+                                         return_top_author=return_top_author,
+                                         top_author_size=top_author_size,
+                                         return_fos_aggs=return_fos_aggs,
+                                         deep_pagination=deep_pagination, last_paper_id=last_paper_id)
+    query = {
+        "query": {
+            "match_all": {}
+        },
+
+    }
+    query.update(common_query)
+    print("Get all papers query :", query)
+    result = es.search(index=index, body=query)
+    print("Get all papers result :", result)
+    return result["hits"]
+
+
+def get_all_topics(es, index):
+    query = {
+        "size": 0,
+        "aggs": {
+            "topics": {
+                "terms": {
+                    "field": "topics.topic.keyword"
+                }
+            }
+        }
+    }
+    print('Get all topics query: ', query)
+    result = es.search(index=index, body=query)
+    print('Get all topics result: ', result)
+    return result['aggregations']['topics']
 
 
 def get_some_citations(es, index,
@@ -375,48 +446,6 @@ def get_some_references(es, index,
         print('paper {} not found'.format(paper_id))
         return {}
 
-###################################### Some unused search #######################################
-def get_all_topics(es, index): #Unused
-    query = {
-        "size": 0,
-        "aggs": {
-            "topics": {
-                "terms": {
-                    "field": "topics.topic.keyword"
-                }
-            }
-        }
-    }
-    print('Get all topics query: ', query)
-    result = es.search(index=index, body=query)
-    print('Get all topics result: ', result)
-    return result['aggregations']['topics']
-
-
-def get_all_papers(es, index,
-                   start=0, size=10, source=None, sort_by=None,
-                   return_fos_aggs=False,
-                   deep_pagination=False, last_paper_id=None,
-                   return_top_author=False, top_author_size=10): #Unused
-    common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
-                                         return_top_author=return_top_author,
-                                         top_author_size=top_author_size,
-                                         return_fos_aggs=return_fos_aggs,
-                                         deep_pagination=deep_pagination, last_paper_id=last_paper_id)
-    query = {
-        "query": {
-            "match_all": {}
-        },
-
-    }
-    query.update(common_query)
-    print("Get all papers query :", query)
-    result = es.search(index=index, body=query)
-    print("Get all papers result :", result)
-    return result["hits"]
-
 
 if __name__ == "__main__":
-    test_index = "paper_test"
-    result = get_all_topics(elasticsearch_connection, test_index)
-    print(result)
+    search_on_typing(elasticsearch_connection, "paper_test", "Fenomén")

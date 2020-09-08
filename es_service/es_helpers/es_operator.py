@@ -33,6 +33,5 @@ def delete_index(es, index, verbose=True):
 
 
 if __name__ == "__main__":
-    from es_constant.constants import PAPER_MAPPING, PAPER_DOCUMENT_INDEX
-
-    delete_index(elasticsearch_connection, "idmapping")
+    from es_constant.constants import *
+    create_index(elasticsearch_connection, "paper_test", PAPER_TEST_MAPPING)
