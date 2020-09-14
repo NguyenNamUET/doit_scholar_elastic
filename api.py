@@ -10,12 +10,12 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_constant.constants import PAPER_TEST_DOCUMENT_INDEX
 from es_constant.constants import AUTHOR_TEST_DOCUMENT_INDEX
 
-from es_service.es_search.es_search_paper__test import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
+from es_service.es_search.es_search_paper import get_paper_by_id, get_all_papers, get_all_fields_of_study, \
     get_all_topics, get_some_citations, get_some_references
-from es_service.es_search.es_search_paper__test import search_by_title, search_by_abstract, search_by_fields_of_study, \
+from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
     search_by_topics, search_on_typing
 
-from es_service.es_search.es_search_author import get_author_by_id, get_author_by_name, get_all_authors
+from es_service.es_search.es_search_author import get_author_by_id, get_author_by_name, get_all_authors, get_some_papers
 
 app = FastAPI()
 
@@ -195,6 +195,7 @@ def searchOnTyping(query: paperItem):
 
     return result
 
+
 ################################# All authors api ###########################
 @app.post("/s2api/authors/getAllAuthor")
 def getAllAuthor(query: authorItem):
@@ -206,11 +207,10 @@ def getAllAuthor(query: authorItem):
 
 
 @app.get("/s2api/authors/{author_id}")
-def getAuthorById(author_id: str, start: Optional[int] = 0, size: Optional[int] = 5):
+def getAuthorById(author_id: str):
     result = get_author_by_id(es=elasticsearch_connection,
                               index=AUTHOR_TEST_DOCUMENT_INDEX,
-                              author_id=author_id,
-                              start=start, size=size)
+                              author_id=author_id)
     return result
 
 
@@ -219,4 +219,13 @@ def getAuthorByName(query: authorItem):
     result = get_author_by_name(es=elasticsearch_connection,
                                 index=AUTHOR_TEST_DOCUMENT_INDEX,
                                 name=query.author_name)
+    return result
+
+
+@app.get("/s2api/papers/{author_id}/papers")
+def getSomePapers(author_id: str, start: Optional[int] = 0, size: Optional[int] = 5):
+    result = get_some_papers(es=elasticsearch_connection, index=AUTHOR_TEST_DOCUMENT_INDEX,
+                             author_id=author_id,
+                             start=start, size=size)
+
     return result

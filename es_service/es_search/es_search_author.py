@@ -20,12 +20,30 @@ def get_all_authors(es, index, start=0, size=0):
     return res["hits"]
 
 
-def get_author_by_id(es, index, author_id, start=0, size=5):
+def get_author_by_id(es, index, author_id):
     try:
-        res = es.get(index=index, id=author_id)
-        return res["_source"]["papers"][start:start + size]
+        author = es.get(index=index, id=author_id)
+        result = {
+                "aliases":	author['_source']["aliases"],
+                "authorId":	author['_source']["authorId"],
+                "influentialCitationCount":	author['_source']["influentialCitationCount"],
+                "totalPapers": author['_source']["influentialCitationCount"],
+                "name":	author['_source']["name"],
+                "papers": author['_source']["papers"][:5]
+            }
+        return result
     except NotFoundError:
         print('author_id {} not found'.format(author_id))
+        return {}
+
+
+def get_some_papers(es, index, author_id, start=5, size=5):
+    try:
+        author = es.get(index=index, id=author_id)
+        print("get_some_papers result: ", author["_source"]["papers"][start:start + size])
+        return author["_source"]["papers"][start:start + size]
+    except NotFoundError:
+        print('author {} not found'.format(author_id))
         return {}
 
 
@@ -51,4 +69,4 @@ def get_author_by_name(es, index, name):
 
 
 if __name__ == "__main__":
-    get_author_by_id(elasticsearch_connection, "author_test", 52098299, 5, 5)
+    print(get_author_by_id(elasticsearch_connection, "author_test", 52098299))
