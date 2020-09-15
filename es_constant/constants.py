@@ -1,5 +1,5 @@
-PAPERS_DATA_PATH = "E://New folder//papers//"
-AUTHORS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/authors/"
+PAPERS_DATA_PATH = "E://New folder (2)//Semantic Self Extracted Data 2//papers//"
+AUTHORS_DATA_PATH = "E://New folder (2)//Semantic Self Extracted Data 2//authors//"
 ES_IP = 'localhost'
 ES_USER = 'user'
 ES_PASS = '12345678'
