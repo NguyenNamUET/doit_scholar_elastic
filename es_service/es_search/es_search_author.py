@@ -68,5 +68,34 @@ def get_author_by_name(es, index, name):
     return result['hits']['hits']
 
 
+def get_author_by_id2(es, index, author_id):
+    try:
+        query = {
+          "query": {
+            "nested": {
+              "path": "authors",
+              "query": {
+                "match": {
+                  "authors.authorId.keyword": author_id
+                }
+              }
+            }
+          }
+        }
+        author = es.search(index=index, body=query)
+        result = {
+                "aliases":	author['_source']["aliases"],
+                "authorId":	author['_source']["authorId"],
+                "influentialCitationCount":	author['_source']["influentialCitationCount"],
+                "totalPapers": author['_source']["influentialCitationCount"],
+                "name":	author['_source']["name"],
+                "papers": author['_source']["papers"][:5]
+            }
+        return result
+    except NotFoundError:
+        print('author_id {} not found'.format(author_id))
+        return {}
+
+
 if __name__ == "__main__":
     print(get_author_by_id(elasticsearch_connection, "author_test", 52098299))

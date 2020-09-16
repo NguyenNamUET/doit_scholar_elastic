@@ -1,12 +1,7 @@
-from es_service.es_helpers.utilites import load_json, write_to_record
-from es_constant.constants import PAPER_DOCUMENT_INDEX, MAPPING_DOCUMENT_INDEX
 from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_helpers.es_operator import insert_doc
-from es_service.es_helpers.utilites import crawl_base_sitemap, crawl_second_sitemap, get_paper_api_v2, extract_url_id
+from crawl_service.helpers.s2page_parser import crawl_base_sitemap, crawl_second_sitemap, get_paper_api_v2, extract_url_id
 
-import os
-import math
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 
 

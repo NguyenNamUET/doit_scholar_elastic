@@ -21,4 +21,4 @@ def check_status_es(es):
 
 
 if __name__ == "__main__":
-    check_status_es(elasticsearch_connection)
+    check_status_es(elasticsearch_connection_async)
