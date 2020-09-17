@@ -9,7 +9,7 @@ import re
 import math
 
 
-def downloader(paper_url):
+def downloader(paper_url, paper_sitemap):
     paper_id = extract_url_id(paper_url)
     s2paper = get_paper_api_v2(paper_id)
     try:
@@ -39,7 +39,7 @@ def downloader(paper_url):
                          "name": author["name"]} for author in s2paper["authors"]]
         }
 
-        store_gz(paper_document, "{}/paper_{}.json.gz".format(PAPER_METADATA_PATH, paper_id))
+        store_gz(paper_document, "{}/sitemap_{}/paper_{}.json.gz".format(PAPER_METADATA_PATH, re.findall("\d+", paper_sitemap)[0], paper_id))
         return paper_id
     except Exception as e:
         print("paper {} DOWNLOAD error: {}".format(paper_id, e))
@@ -49,11 +49,11 @@ def download_data():
     paper_sitemaps_list = crawl_base_sitemap("https://www.semanticscholar.org/sitemap_paper_index.xml")
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         for paper_sitemap in paper_sitemaps_list[:2]:
-            paper_urls = crawl_second_sitemap(paper_sitemap)[:5]
+            paper_urls = crawl_second_sitemap(paper_sitemap)[:50]
             if paper_urls is not None:
                 urls_grouper = grouper(paper_urls, 1000)
                 for index, urls_group in enumerate(urls_grouper):
-                    future_to_url = {executor.submit(downloader, paper_url): paper_url for paper_url in urls_group if
+                    future_to_url = {executor.submit(downloader, paper_url,paper_sitemap): paper_url for paper_url in urls_group if
                                      paper_url is not None}
                     # Just ignore this
                     pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")

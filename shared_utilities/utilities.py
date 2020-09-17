@@ -96,4 +96,8 @@ def load_jsonl_from_gz(file_gz_path):
             obj = json.loads(file_content)
             return obj
     except Exception as e:
-        print("load_jsonl_from_gz {} error {}".formatt(file_gz_path, e))
+        print("load_jsonl_from_gz {} error {}".format(file_gz_path, e))
+
+
+if __name__ == '__main__':
+    print(list(grouper([1,2,3,4,5,6,7,8,9],3)))
