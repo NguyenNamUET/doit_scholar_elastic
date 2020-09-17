@@ -1,7 +1,5 @@
 # Project exclude paths
 /venv/
 /es_service/es_origin/
-/crawl_service/localstorage/test/
-/crawl_service/helpers/test/
 /failed_url.txt
 /test.py
