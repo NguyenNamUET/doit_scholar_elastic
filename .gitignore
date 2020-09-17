@@ -3,3 +3,5 @@
 /es_service/es_origin/
 /failed_url.txt
 /test.py
+*.pyc
+__pycache__/
