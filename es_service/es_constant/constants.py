@@ -3,6 +3,7 @@ ES_USER = 'user' #default #user
 ES_PASS = '12345678' #changeme #12345678
 ES_PORT = '9202' #7778 #9202
 
+#####
 PAPER_DOCUMENT_INDEX = 'paper'
 
 ###Description of PAPER_MAPPING: Nested authors field for aggregration
