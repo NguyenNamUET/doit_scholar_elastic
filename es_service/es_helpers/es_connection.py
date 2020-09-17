@@ -1,6 +1,6 @@
 from elasticsearch import Elasticsearch
 from elasticsearch import AsyncElasticsearch
-from es_constant.constants import ES_USER, ES_PASS, ES_IP, ES_PORT
+from es_service.es_constant.constants import ES_USER, ES_PASS, ES_IP, ES_PORT
 
 
 elasticsearch_connection = Elasticsearch(
@@ -21,4 +21,4 @@ def check_status_es(es):
 
 
 if __name__ == "__main__":
-    check_status_es(elasticsearch_connection_async)
+    check_status_es(elasticsearch_connection)

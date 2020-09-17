@@ -1,4 +1,3 @@
-from elasticsearch import Elasticsearch
 from es_service.es_helpers.es_connection import elasticsearch_connection
 
 
@@ -30,8 +29,3 @@ def delete_index(es, index, verbose=True):
         print(res)
         print("Success")
     return True
-
-
-if __name__ == "__main__":
-    from es_constant.constants import *
-    create_index(elasticsearch_connection, "paper_test", PAPER_TEST_MAPPING)

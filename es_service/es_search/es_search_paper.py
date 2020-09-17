@@ -1,13 +1,10 @@
 from elasticsearch import NotFoundError
 
-from es_constant.constants import PAPER_DOCUMENT_INDEX
-from es_service.es_helpers.es_connection import elasticsearch_connection, elasticsearch_connection_async
+from es_service.es_helpers.es_connection import elasticsearch_connection
 
 from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_aggregation_of_authors, \
     get_paper_aggregation_of_fields_of_study, get_paper_default_sort, count_fields_of_study_buckets, \
     get_paper_aggregation_of_venues
-
-import asyncio
 
 
 ##Straight forward functions (no building query by hand)

@@ -87,3 +87,13 @@ def store_gz(json_obj, file_output_path, is_append=False):
         else:
             with gzip.open(file_output_path, 'wb') as f:
                 f.write((json.dumps(json_obj, ensure_ascii=False, indent=2)).encode('utf-8'))
+
+
+def load_jsonl_from_gz(file_gz_path):
+    try:
+        with gzip.open(file_gz_path, 'rt') as f:
+            file_content = f.read()
+            obj = json.loads(file_content)
+            return obj
+    except Exception as e:
+        print("load_jsonl_from_gz {} error {}".formatt(file_gz_path, e))

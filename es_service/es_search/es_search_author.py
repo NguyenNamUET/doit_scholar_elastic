@@ -1,8 +1,4 @@
-from es_constant.constants import AUTHOR_DOCUMENT_INDEX
 from es_service.es_helpers.es_connection import elasticsearch_connection
-
-from es_service.es_search.es_search_helpers import get_author_default_sort
-from es_service.es_search.es_search_helpers import get_author_default_source
 
 from elasticsearch import NotFoundError
 

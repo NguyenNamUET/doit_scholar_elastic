@@ -1,18 +1,45 @@
-from crawl_service.helpers.utilities import grouper, store_gz
-from crawl_service.helpers.s2page_parser import crawl_base_sitemap, crawl_second_sitemap, get_paper_api_v2, extract_url_id, get_pdf_link_and_name
+from shared_utilities.utilities import grouper, store_gz
+from crawl_service.helpers.s2page_parser import crawl_base_sitemap, crawl_second_sitemap, get_paper_api_v2, \
+    extract_url_id, get_pdf_link_and_name
+from constants.constants import PAPER_METADATA_PATH
 
 import concurrent.futures
+from tqdm import tqdm
+import re
+import math
 
 
 def downloader(paper_url):
     paper_id = extract_url_id(paper_url)
-    paper_document = get_paper_api_v2(paper_id)
+    s2paper = get_paper_api_v2(paper_id)
     try:
-        paper_document["citations_count"] = len(paper_document["citations"])
-        paper_document["references_count"] = len(paper_document["references"])
-        paper_document["pdf_url"] = get_pdf_link_and_name(paper_url)[0]
+        paper_document = {
+            "paperId": s2paper["paperId"],
+            "corpusId": s2paper["corpusId"],
+            "title": s2paper["title"],
+            "abstract": s2paper["abstract"],
+            "venue": s2paper["venue"],
+            "year": s2paper["year"],
+            "citationVelocity": s2paper["citationVelocity"],
+            "doi": s2paper["doi"],
+            "influentialCitationCount": s2paper["influentialCitationCount"],
+            "citations_count": len(s2paper["citations"]),
+            "references_count": len(s2paper["references"]),
+            "pdf_url": get_pdf_link_and_name(paper_url)[0],
+            "fieldsOfStudy": s2paper["fieldsOfStudy"],
+            "citations": [{"paperId": citation["paperId"],
+                           "isInfluential": citation["isInfluential"],
+                           "intent": citation["intent"]}
+                          for citation in s2paper["citations"]],
+            "references": [{"paperId": reference["paperId"],
+                            "intent": reference["intent"],
+                            "isInfluential": reference["isInfluential"]}
+                           for reference in s2paper["references"]],
+            "authors": [{"authorId": author["authorId"],
+                         "name": author["name"]} for author in s2paper["authors"]]
+        }
 
-        store_gz(paper_document, "test/paper_{}.json.gz".format(paper_id))
+        store_gz(paper_document, "{}/paper_{}.json.gz".format(PAPER_METADATA_PATH, paper_id))
         return paper_id
     except Exception as e:
         print("paper {} DOWNLOAD error: {}".format(paper_id, e))
@@ -21,13 +48,17 @@ def downloader(paper_url):
 def download_data():
     paper_sitemaps_list = crawl_base_sitemap("https://www.semanticscholar.org/sitemap_paper_index.xml")
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        for paper_sitemap in paper_sitemaps_list[:1]:
-            paper_urls = crawl_second_sitemap(paper_sitemap)
+        for paper_sitemap in paper_sitemaps_list[:2]:
+            paper_urls = crawl_second_sitemap(paper_sitemap)[:5]
             if paper_urls is not None:
-                for index, urls_group in enumerate(grouper(paper_urls, 1000)):
-                    future_to_url = {executor.submit(downloader, paper_url): paper_url for paper_url in urls_group if paper_url is not None}
-                    #Just ignore this
-                    for future in concurrent.futures.as_completed(future_to_url):
+                urls_grouper = grouper(paper_urls, 1000)
+                for index, urls_group in enumerate(urls_grouper):
+                    future_to_url = {executor.submit(downloader, paper_url): paper_url for paper_url in urls_group if
+                                     paper_url is not None}
+                    # Just ignore this
+                    pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")
+                    for future in pbar:
+                        pbar.set_description("Paper_sitemap_{}_group_({}/{})".format(re.findall("\d+", paper_sitemap)[0],index,math.ceil(len(list(urls_grouper))/1000)))
                         paper_url = future_to_url[future]
                         try:
                             paper_id = future.result()

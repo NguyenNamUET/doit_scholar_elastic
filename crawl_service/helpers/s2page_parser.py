@@ -1,9 +1,7 @@
 import re
-from bs4 import BeautifulSoup
-from crawl_service.helpers.utilities import load_url, read_text, write_to_record
+from shared_utilities.utilities import load_url
 
-#paraphrase ssh: nguyennam
-#https://scihub.wikicn.top/
+
 def get_pdf_link_and_name(url):
     try:
         soup = load_url(url, return_content=True, proxy=True)

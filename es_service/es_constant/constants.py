@@ -1,19 +1,12 @@
-PAPERS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/papers/"
-AUTHORS_DATA_PATH = "/home/nguyennam/Downloads/Semantic/Semantic Self Extracted Data 2/authors/"
-ES_IP = '112.137.142.8' #112.137.142.8 #localhost
-ES_USER = 'default' #default #user
-ES_PASS = 'changeme' #changeme #12345678
-ES_PORT = '7778' #7778 #9202
+ES_IP = 'localhost' #112.137.142.8 #localhost
+ES_USER = 'user' #default #user
+ES_PASS = '12345678' #changeme #12345678
+ES_PORT = '9202' #7778 #9202
+
 PAPER_DOCUMENT_INDEX = 'paper'
-AUTHOR_DOCUMENT_INDEX = 'author'
-MAPPING_DOCUMENT_INDEX = 'idmapping'
-
-PAPER_TEST_DOCUMENT_INDEX = 'paper_test'
-AUTHOR_TEST_DOCUMENT_INDEX = 'author_test'
-
 
 ###Description of PAPER_MAPPING: Nested authors field for aggregration
-PAPER_TEST_MAPPING = {
+PAPER_MAPPING = {
   "mappings": {
     "_doc": {
       "properties": {
@@ -363,59 +356,4 @@ PAPER_TEST_MAPPING = {
       }
     }
   }
-}
-
-AUTHOR_MAPPING = {
-    "mappings": {
-        "properties": {
-            "authorId": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
-                    }
-                }
-            },
-            "influentialCitationCount": {
-                "type": "long"
-            },
-            "name": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
-                    }
-                }
-            },
-            "corpusID": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
-                    }
-                }
-            },
-            "title": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword",
-                        "ignore_above": 256
-                    }
-                }
-            },
-            "year": {
-                "type": "long"
-            },
-            "relation_type": {
-                "type": "join",
-                "relations": {
-                    "author": "paper"
-                }
-            }
-        }
-    }
 }

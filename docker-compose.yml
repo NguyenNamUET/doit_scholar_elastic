@@ -60,7 +60,7 @@ services:
       - type: volume
         source: logs
         target: /var/log
-      - esdata1:/usr/share/elasticsearch/data
+      - /home/nguyennam/Downloads/es_bind:/usr/share/elasticsearch/data
     networks:
       - elastic
     ports:
@@ -95,8 +95,6 @@ services:
 
 
 volumes:
-  esdata1:
-    driver: local
   logs:
 
 networks:

@@ -1,4 +1,4 @@
-from crawl_service.helpers.utilities import load_url
+from shared_utilities.utilities import load_url
 
 BASE_SCIHUB = "https://scihub.wikicn.top/"
 
