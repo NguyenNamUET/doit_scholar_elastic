@@ -13,8 +13,8 @@ import math
 def index_paper_document(path):
     try:
         paper_document = load_jsonl_from_gz(PAPER_METADATA_PATH+"/"+path)
-        insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-                   id=paper_document["corpusId"], body=paper_document, verbose=True)
+        # insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+        #            id=paper_document["corpusId"], body=paper_document, verbose=True)
         return path
     except Exception as e:
         print("Paper {} index error: {}".format(path, e))
@@ -30,10 +30,12 @@ def index_papers():
                 # Just ignore this
                 pbar = tqdm(concurrent.futures.as_completed(future_to_path), total=len(future_to_path), unit="paper")
                 for future in pbar:
-                    pbar.set_description("Paper index({}/{})".format(index, math.ceil(len(list(papers_group))/1000)))
+                    pbar.set_description("Paper sitemap {}".format(sitemap_dir))
                     paper_path = future_to_path[future]
                     try:
                         paper_id = future.result()
                     except Exception as exc:
                         print('%r generated an exception: %s' % (paper_path, exc))
 
+if __name__ == '__main__':
+    index_papers()

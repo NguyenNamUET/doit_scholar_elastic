@@ -9,7 +9,7 @@ dataclasses==0.6
 elasticsearch==7.9.1
 fastapi==0.61.1
 fasteners==0.15
-h11==0.10.0
+h11
 httptools==0.1.1
 idna==2.10
 monotonic==1.5
@@ -18,7 +18,7 @@ pydantic==1.6.1
 requests==2.24.0
 six==1.15.0
 soupsieve==2.0.1
-starlette==0.13.8
+starlette
 tqdm==4.48.2
 typing-extensions==3.7.4.3
 urllib3==1.25.10

@@ -12,7 +12,7 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(*args, fillvalue=fillvalue)
 
 
-def load_url(url, return_content=False, proxy=False, return_json=False):
+def load_url(url, error_path, return_content=False, proxy=False, return_json=False):
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
                "Connection": "keep-alive",
                "Accept-Language": "en-US,en;q=0.5"}
@@ -35,6 +35,37 @@ def load_url(url, return_content=False, proxy=False, return_json=False):
             return response
     except Exception as e:
         print("load_url() error: ", e)
+        write_to_record(url, error_path, by_line=True, is_append=True)
+
+
+async def load_url_async(url, session, return_content=False, proxy=False, return_json=False):
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
+                   "Connection": "keep-alive",
+                   "Accept-Language": "en-US,en;q=0.5"}
+        if proxy:  ##Do not reveal this proxy
+            proxies = "http://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225"
+
+            async with session.get(url, headers=headers, proxy=proxies) as response:
+                if return_content:
+                    soup = BeautifulSoup(await response.text(), "html.parser")
+                    return soup
+                elif return_json:
+                    return await response.json()
+                else:
+                    return response
+        else:
+            async with session.get(url) as response:
+                if return_content:
+                    soup = BeautifulSoup(await response.text(), "html.parser")
+                    return soup
+                elif return_json:
+                    return await response.json()
+                else:
+                    return response
+
+    except Exception as e:
+        print("load_url_async() error: ", e)
         write_to_record(url,
                         "/home/nguyennam/Downloads/doit_scholar_elastic/failed_url.txt", by_line=True,
                         is_append=True)
@@ -97,7 +128,3 @@ def load_jsonl_from_gz(file_gz_path):
             return obj
     except Exception as e:
         print("load_jsonl_from_gz {} error {}".format(file_gz_path, e))
-
-
-if __name__ == '__main__':
-    print(list(grouper([1,2,3,4,5,6,7,8,9],3)))
