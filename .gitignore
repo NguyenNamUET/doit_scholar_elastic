@@ -9,6 +9,6 @@ venv.bak/
 /es_service/es_origin/
 /failed_url.txt
 /test.py
-**/__pycache__
+__pycache__/
 *.py[cod]
 *$py.class
