@@ -13,8 +13,8 @@ import math
 def index_paper_document(path):
     try:
         paper_document = load_jsonl_from_gz(PAPER_METADATA_PATH+"/"+path)
-        # insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-        #            id=paper_document["corpusId"], body=paper_document, verbose=True)
+        insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                   id=paper_document["paperId"], body=paper_document, verbose=True)
         return path
     except Exception as e:
         print("Paper {} index error: {}".format(path, e))

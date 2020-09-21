@@ -1,5 +1,5 @@
 import re
-from shared_utilities.utilities import load_url, load_url_async
+from shared_utilities.utilities import load_url, load_url_async, write_to_record
 from constants.constants import PAPER_METADATA_PATH
 
 
@@ -59,6 +59,8 @@ def crawl_second_sitemap(sitemap_url):
                                    error_path="{}/sitemap_{}/sitemap_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
                                    return_content=True, proxy=True)
         all_paper_urls_soup = sitemap_content.find_all("loc")
-        return [sitemap.text for sitemap in all_paper_urls_soup]
+        write_to_record(sitemap_url, "{}/sitemap_{}/sitemap_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
+                        by_line=True, is_append=True)
+        return [sitemap.text for sitemap in all_paper_urls_soup], sitemap_url
     except Exception as e:
         print("Sitemap {} caused error {}".format(sitemap_id, e))

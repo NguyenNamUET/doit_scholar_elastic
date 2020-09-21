@@ -44,7 +44,7 @@ async def load_url_async(url, session, return_content=False, proxy=False, return
                    "Connection": "keep-alive",
                    "Accept-Language": "en-US,en;q=0.5"}
         if proxy:  ##Do not reveal this proxy
-            proxies = "http://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225"
+            proxies = "https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225"
 
             async with session.get(url, headers=headers, proxy=proxies) as response:
                 if return_content:
