@@ -80,11 +80,11 @@ async def get_paper_by_id(es, index, paper_id):
 
         citations = await asyncio.gather(
             *(get_paper_from_id(es, index, citation["paperId"], citation["isInfluential"])
-              for citation in paper['_source']["citations"][:5]))
+              for citation in paper['_source']["citations"][:10]))
 
         for c in citations:
             if c is not None:
-                res["references"].append({"paperId": c["paperId"],
+                res["citations"].append({"paperId": c["paperId"],
                                           "title": c["title"],
                                           "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
                                                       c["authors"]],
@@ -94,7 +94,7 @@ async def get_paper_by_id(es, index, paper_id):
 
         references = await asyncio.gather(
             *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
-              for reference in paper['_source']["references"][:5]))
+              for reference in paper['_source']["references"][:10]))
         for r in references:
             if r is not None:
                 res["references"].append({"paperId": r["paperId"],
@@ -603,8 +603,8 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
     return result
 
 if __name__ == "__main__":
-    print(asyncio.run(get_some_citations(es=elasticsearch_connection,
+    print(asyncio.run(get_paper_by_id(es=elasticsearch_connection,
                                       index="paper",
-                                      paper_id="7f789c9096e178f15512c123373d1a79dc59f035",
+                                      paper_id="09dca39fa270484f047e9d6d9d64cd79460b214f",
                                       )))
 

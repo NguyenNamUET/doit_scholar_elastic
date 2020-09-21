@@ -50,62 +50,26 @@ def downloader(paper_url, paper_sitemap):
         print("paper {} DOWNLOAD error: {}".format(paper_id, e))
 
 
-# def download_data(start, end=None):
-#     paper_sitemaps_list = crawl_base_sitemap("https://www.semanticscholar.org/sitemap_paper_index.xml")
-#     paper_sitemaps = paper_sitemaps_list[start:] if end is None else paper_sitemaps_list[start:end]
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-#         for paper_sitemap in paper_sitemaps:
-#             paper_urls = crawl_second_sitemap(paper_sitemap)[:50]
-#             if paper_urls is not None:
-#                 urls_grouper = grouper(paper_urls, 1000)
-#                 for index, urls_group in enumerate(urls_grouper):
-#                     future_to_url = {executor.submit(downloader, paper_url,paper_sitemap): paper_url for paper_url in urls_group if
-#                                              paper_url is not None}
-#                     # Just ignore this
-#                     pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")
-#                     for future in pbar:
-#                         pbar.set_description("Paper_sitemap_{}_group_({}/5)".format(re.findall("\d+", paper_sitemap)[0],index))
-#                         paper_url = future_to_url[future]
-#                         try:
-#                             paper_id = future.result()
-#                         except Exception as exc:
-#                             print('%r generated an exception: %s' % (paper_url, exc))
-
-
 def download_data(start, end=None):
     paper_sitemaps_list = crawl_base_sitemap("https://www.semanticscholar.org/sitemap_paper_index.xml")
-    paper_sitemaps = iter(paper_sitemaps_list[start:]) if end is None else iter(paper_sitemaps_list[start:end])
-
+    paper_sitemaps = paper_sitemaps_list[start:] if end is None else paper_sitemaps_list[start:end]
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        futures = {
-            executor.submit(crawl_second_sitemap, paper_sitemap): paper_sitemap
-            for paper_sitemap in itertools.islice(paper_sitemaps, 6)
-        }
-        while futures:
-            # Wait for the next future to complete.
-            done, notdone = concurrent.futures.wait(
-                futures, return_when=concurrent.futures.FIRST_COMPLETED
-            )
-            print(list(os.listdir(PAPER_METADATA_PATH)))
-            print("Done: ", [dfut.result()[1] for dfut in done])
-            print("Not done: ", [ndfut.result()[1] for ndfut in notdone])
-            print("Before pop: ", len(futures))
-            for fut in done:
-                try:
-                    futures.pop(fut)
-                    print(f"The outcome is {fut.result()[1]} {len(fut.result()[0])}")
-                except Exception as e:
-                    print(f"{fut.result()[1]} causes error {e}")
-            print("After pop: ", len(futures))
-            ##Do not print itertools.islice(paper_sitemaps, len(done))
-            # Schedule the next set of futures.  We don't want more than N futures
-            # in the pool at a time, to keep memory consumption down.
-            for paper_sitemap in itertools.islice(paper_sitemaps, len(done)):
-                fut = executor.submit(crawl_second_sitemap, paper_sitemap)
-                futures[fut] = paper_sitemap
-
-            print("After add: ", len(futures))
-            print("\n")
+        for paper_sitemap in paper_sitemaps:
+            paper_urls = crawl_second_sitemap(paper_sitemap)[:50]
+            if paper_urls is not None:
+                urls_grouper = grouper(paper_urls, 1000)
+                for index, urls_group in enumerate(urls_grouper):
+                    future_to_url = {executor.submit(downloader, paper_url,paper_sitemap): paper_url for paper_url in urls_group if
+                                             paper_url is not None}
+                    # Just ignore this
+                    pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")
+                    for future in pbar:
+                        pbar.set_description("Paper_sitemap_{}_group_({}/5)".format(re.findall("\d+", paper_sitemap)[0],index))
+                        paper_url = future_to_url[future]
+                        try:
+                            paper_id = future.result()
+                        except Exception as exc:
+                            print('%r generated an exception: %s' % (paper_url, exc))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 import re
-from shared_utilities.utilities import load_url, load_url_async, write_to_record
+from shared_utilities.utilities import load_url, write_to_record
 from constants.constants import PAPER_METADATA_PATH
 
 
@@ -64,3 +64,8 @@ def crawl_second_sitemap(sitemap_url):
         return [sitemap.text for sitemap in all_paper_urls_soup], sitemap_url
     except Exception as e:
         print("Sitemap {} caused error {}".format(sitemap_id, e))
+
+
+if __name__ == '__main__':
+    print(get_pdf_link_and_name("https://www.semanticscholar.org/paper/%E5%9D%9A%E6%8C%81%E5%85%AC%E6%AD%A3%E5%8F%B8%E6%B3%95-%E5%BB%BA%E8%AE%BE%E2%80%9C%E5%B9%B3%E5%AE%89%E9%87%8D%E5%BA%86%E2%80%9D-%E7%8E%8B%E4%B8%AD%E4%BC%9F/f70525a68d6554de2e8b02eb68854f60744dd83c",
+                                "000001"))
