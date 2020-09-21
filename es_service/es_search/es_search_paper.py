@@ -186,14 +186,32 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
 
 
 def search_paper_title__builder(search_content):
-    query = {
-        "match": {
-            "title": {
-                "query": search_content,
-                "fuzziness": 2
+    query = [
+        {
+          "multi_match": {
+              "query": search_content,
+              "fields": [ "title", "abstract"],
+              "operator": "and",
+              "boost": 2
+          }
+        },
+        {
+          "match": {
+            "abstract": {
+              "query": search_content,
+              "operator": "and"
             }
+          }
+        },
+        {
+          "match": {
+            "title": {
+              "query": search_content,
+              "operator": "and"
+            }
+          }
         }
-    }
+      ]
     print("search_paper_title__builder: ", query)
     return query
 
@@ -355,10 +373,10 @@ def search_by_title(es, index, search_content,
     title_query = search_paper_title__builder(search_content=search_content)
     query = {"query":
                  {"bool":
-                      {"must": []}
+                      {"must": [],
+                       "should": title_query}
                   }
              }
-    query["query"]["bool"]["must"].append(title_query)
 
     if venues is not None:
         venues_query = search_paper_by_venues__builder(venues=venues, venues_isShould=venues_isShould)
@@ -464,19 +482,17 @@ def search_by_topics(es, index,
 
 
 def search_on_typing(es, index, search_content, size=10):
-    common_query = common_query__builder(source=["title", "citations_count"], sort_by=[{"citations_count": "desc"}])
-    query = {
-        "query": {
-            "match": {
-                "title": {
-                    "query": search_content
-                }
-            }
-        }
-    }
+    common_query = common_query__builder(source=["title", "citations_count"], sort_by=[{"citations_count": "desc"}],
+                                         size=size)
+    title_query = search_paper_title__builder(search_content=search_content)
+    query = {"query":
+                 {"bool":
+                      {"must": [],
+                       "should": title_query}
+                  }
+             }
     query.update(common_query)
     print("search_on_typing query: ", query)
-
     result = es.search(index=index, body=query)
     if result["hits"]["total"]["value"] == 0:
         return {}
