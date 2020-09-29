@@ -25,6 +25,7 @@ origins = [
     "https://localhost:3000",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "http://192.168.1.54:3400"
     # "http://112.137.142.8:7778",
     # "http://112.137.142.8:3400"
 ]
@@ -46,7 +47,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-# Run command: uvicorn api:app --reload
+# Run command: uvicorn api:app --reload --workers
 
 class paperItem(BaseModel):
     search_content: Optional[str] = "neural"
@@ -87,10 +88,11 @@ class authorItem(BaseModel):
 
 ################################# All papers api ###########################
 @app.get("/s2api/papers/{paperID}")
-async def getpaperByID(paperID: str):
+async def getpaperByID(paperID: str, citations_year_range: Optional[int] = 10):
     result = await get_paper_by_id(es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
-                                   paper_id=paperID)
+                                   paper_id=paperID,
+                                   citations_year_range=citations_year_range)
     return result
 
 

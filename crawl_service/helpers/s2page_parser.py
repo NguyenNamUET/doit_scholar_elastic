@@ -26,6 +26,24 @@ def get_pdf_link_and_name(paper_url, sitemap_id):
         return None
 
 
+def get_journal(paper_url, sitemap_id):
+    try:
+        soup = load_url(paper_url,
+                        error_path="{}/sitemap_{}/journal_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
+                        return_content=True, proxy=True)
+
+        source = soup.find("span", {"data-heap-id":"paper-meta-journal"})
+
+        if source is not None:
+            return source.text
+        else:
+            return None
+
+    except Exception as e:
+        print("{} caused JOURNAL error {}".format(paper_url, e))
+        return None
+
+
 def get_paper_api_v2(paperID, sitemap_id):
     paper = load_url("https://api.semanticscholar.org/v1/paper/{}".format(paperID),
                      error_path="{}/sitemap_{}/paper_error.txt".format(PAPER_METADATA_PATH,sitemap_id),

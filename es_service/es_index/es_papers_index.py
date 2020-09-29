@@ -7,12 +7,15 @@ from shared_utilities.utilities import load_jsonl_from_gz, grouper
 import os
 import concurrent.futures
 from tqdm import tqdm
-import math
 
 
 def index_paper_document(path):
     try:
         paper_document = load_jsonl_from_gz(PAPER_METADATA_PATH+"/"+path)
+        paper_document["citations_count"] = len(paper_document["citations"])
+        paper_document["references_count"] = len(paper_document["references"])
+        paper_document["authors_count"] = len(paper_document["authors"])
+
         insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                    id=paper_document["paperId"], body=paper_document, verbose=True)
         return path

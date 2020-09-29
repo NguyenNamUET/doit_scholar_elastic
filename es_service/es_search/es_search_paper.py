@@ -2,14 +2,16 @@ from elasticsearch import NotFoundError
 
 from es_service.es_helpers.es_connection import elasticsearch_connection
 
-from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_aggregation_of_authors, \
-    get_paper_aggregation_of_fields_of_study, get_paper_default_sort, \
-    get_paper_aggregation_of_venues, get_paper_from_id
+from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_default_sort, \
+    get_paper_aggregation_of_fields_of_study, get_paper_aggregation_of_authors, \
+    get_paper_aggregation_of_venues, get_citations_aggregation_by_year, get_citations_aggregation_by_year__S2, \
+    get_paper_from_id
 
 from es_service.es_constant.constants import HEADERS, PROXY
 
 import asyncio
 import requests
+import random
 
 
 ##Straight forward functions (no building query by hand)
@@ -57,44 +59,59 @@ def count_topics(es, index):
     return result['aggregations']['topics']["value"]
 
 
-async def get_paper_by_id(es, index, paper_id):
-    try:
-        paper = es.get(index=index, id=paper_id)
+async def get_paper_by_id(es, index, paper_id, citations_year_range=10):
+    query = {
+        "query": {
+            "match": {
+                "paperId.keyword": paper_id
+            }
+        },
+        "aggs": {
+            "citation_year_count": get_citations_aggregation_by_year(size=citations_year_range)
+        }
+    }
+    query_res = es.search(index=index, body=query)
 
-        res = {"paperId": paper['_source']["paperId"],
-               "doi": paper['_source']["doi"],
-               "corpusId": paper['_source']["corpusId"],
-               "title": paper['_source']["title"],
-               "venue": paper['_source']["venue"],
-               "year": paper['_source']["year"],
-               "abstract": paper['_source']["abstract"],
-               "authors": paper['_source']["authors"],
-               "fieldsOfStudy": paper['_source']["fieldsOfStudy"],
-               "topics": [{"topic": "test", "topicId": "000001"}],  ######################
-               "citationVelocity": paper['_source']["citationVelocity"],
+    #IF FOUND PAPER ON MY ELASTICSEARCH
+    if query_res['hits']['total']['value'] > 0:
+        print(f"FOUND {paper_id} ON MY API")
+
+        paper = query_res['hits']['hits'][0]['_source']
+        res = {"paperId": paper["paperId"],
+               "doi": paper["doi"],
+               "corpusId": paper["corpusId"],
+               "title": paper["title"],
+               "venue": paper["venue"],
+               "year": paper["year"],
+               "abstract": paper["abstract"],
+               "authors": paper["authors"],
+               "fieldsOfStudy": paper["fieldsOfStudy"],
+               "topics": paper["topics"],
+               "citationVelocity": paper["citationVelocity"],
                "citations": [],
                "references": [],
-               "citations_length": paper['_source']["citations_count"],
-               "references_length": paper['_source']["references_count"]
+               "citations_length": paper["citations_count"],
+               "references_length": paper["references_count"],
+
+               "citations_chart": query_res["aggregations"]["citation_year_count"]["buckets"]
                }
 
         citations = await asyncio.gather(
             *(get_paper_from_id(es, index, citation["paperId"], citation["isInfluential"])
-              for citation in paper['_source']["citations"][:10]))
-
+              for citation in paper["citations"][:5]))
         for c in citations:
             if c is not None:
                 res["citations"].append({"paperId": c["paperId"],
-                                          "title": c["title"],
-                                          "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
-                                                      c["authors"]],
-                                          "isInfluential": c["isInfluential"],
-                                          "venue": c["venue"],
-                                          "year": c["year"]})
+                                         "title": c["title"],
+                                         "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
+                                                     c["authors"]],
+                                         "isInfluential": c["isInfluential"],
+                                         "venue": c["venue"],
+                                         "year": c["year"]})
 
         references = await asyncio.gather(
             *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
-              for reference in paper['_source']["references"][:10]))
+              for reference in paper["references"][:5]))
         for r in references:
             if r is not None:
                 res["references"].append({"paperId": r["paperId"],
@@ -106,7 +123,8 @@ async def get_paper_by_id(es, index, paper_id):
                                           "year": r["year"]})
         return res
 
-    except NotFoundError:
+    #IF FOUND ON S2 API
+    else:
         print(f"NOT FOUND {paper_id} ON MY API")
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                 headers=HEADERS, proxies=PROXY)
@@ -120,11 +138,11 @@ async def get_paper_by_id(es, index, paper_id):
                "citationVelocity": paper["citationVelocity"],
                "doi": paper["doi"],
                "influentialCitationCount": paper["influentialCitationCount"],
-               "citations_count": len(paper["citations"]),
+               "citations_length": len(paper["citations"]),
                "topics": [{"topic": topic["topic"],
                            "topicId": topic["topicId"]}
                           for topic in paper["topics"]],
-               "references_count": len(paper["references"]),
+               "references_length": len(paper["references"]),
                "fieldsOfStudy": paper["fieldsOfStudy"],
                "citations": [{"paperId": citation["paperId"],
                               "title": citation["title"],
@@ -143,7 +161,10 @@ async def get_paper_by_id(es, index, paper_id):
                                "year": reference["year"]}
                               for reference in paper["references"][:5]],
                "authors": [{"authorId": author["authorId"],
-                            "name": author["name"]} for author in paper["authors"]]
+                            "name": author["name"]} for author in paper["authors"]],
+
+               "citations_chart": get_citations_aggregation_by_year__S2(paper["citations"],
+                                                                        size=citations_year_range)
                }
 
         return res
@@ -188,30 +209,30 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
 def search_paper_title__builder(search_content):
     query = [
         {
-          "multi_match": {
-              "query": search_content,
-              "fields": [ "title", "abstract"],
-              "operator": "and",
-              "boost": 2
-          }
+            "multi_match": {
+                "query": search_content,
+                "fields": ["title", "abstract"],
+                "operator": "and",
+                "boost": 2
+            }
         },
         {
-          "match": {
-            "abstract": {
-              "query": search_content,
-              "operator": "and"
+            "match": {
+                "abstract": {
+                    "query": search_content,
+                    "operator": "and"
+                }
             }
-          }
         },
         {
-          "match": {
-            "title": {
-              "query": search_content,
-              "operator": "and"
+            "match": {
+                "title": {
+                    "query": search_content,
+                    "operator": "and"
+                }
             }
-          }
         }
-      ]
+    ]
     print("search_paper_title__builder: ", query)
     return query
 
@@ -447,9 +468,11 @@ def search_by_fields_of_study(es, index,
                                              fos_isShould=fos_isShould)
     query = {"query": fos_query}
     query.update(common_query)
+
     print("search_by_fields_of_study query: ", query)
 
     result = es.search(index=index, body=query)
+
     print("search_by_fields_of_study result: ", result)
     if result["hits"]["total"]["value"] == 0:
         return {}
@@ -462,7 +485,8 @@ def search_by_topics(es, index,
                      start=0, size=10, source=None, sort_by=None,
                      return_fos_aggs=False,
                      deep_pagination=False, last_paper_id=None,
-                     return_top_author=False, top_author_size=10):
+                     return_top_author=False, top_author_size=10,
+                     ):
     common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
@@ -602,9 +626,9 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
                   for reference in paper["references"][start:(start + size)]]
     return result
 
+
 if __name__ == "__main__":
     print(asyncio.run(get_paper_by_id(es=elasticsearch_connection,
                                       index="paper",
                                       paper_id="09dca39fa270484f047e9d6d9d64cd79460b214f",
                                       )))
-

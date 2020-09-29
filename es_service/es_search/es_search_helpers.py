@@ -1,4 +1,6 @@
 from elasticsearch import NotFoundError
+
+from collections import Counter
 import httpx
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
@@ -75,6 +77,26 @@ def get_paper_aggregation_of_authors(size):
             }
         }
     }
+
+
+def get_citations_aggregation_by_year(size):
+    return {
+        "terms": {
+            "field": "citations.year",
+            "size": size
+        }
+    }
+
+
+def get_citations_aggregation_by_year__S2(citations, size):
+    cit_counter = Counter(cit['year'] for cit in citations if cit['year'] is not None)
+    cit_aggs = []
+    for sign, count in sorted(cit_counter.most_common(size)):
+        cit_aggs.append({
+            "key" : sign,
+            "doc_count" : count
+            })
+    return cit_aggs
 
 
 def get_author_default_source():

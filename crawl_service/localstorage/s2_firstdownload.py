@@ -5,9 +5,7 @@ from constants.constants import PAPER_METADATA_PATH
 
 import concurrent.futures
 from tqdm import tqdm
-import itertools
 import re
-import os
 
 
 def downloader(paper_url, paper_sitemap):
@@ -25,20 +23,28 @@ def downloader(paper_url, paper_sitemap):
             "citationVelocity": s2paper["citationVelocity"],
             "doi": s2paper["doi"],
             "influentialCitationCount": s2paper["influentialCitationCount"],
-            "citations_count": len(s2paper["citations"]),
             "topics": [{"topic": topic["topic"],
                         "topicId": topic["topicId"]}
                        for topic in s2paper["topics"]],
-            "references_count": len(s2paper["references"]),
             "pdf_url": get_pdf_link_and_name(paper_url, sitemap_id)[0],
             "fieldsOfStudy": s2paper["fieldsOfStudy"],
             "citations": [{"paperId": citation["paperId"],
                            "isInfluential": citation["isInfluential"],
-                           "intent": citation["intent"]}
+                           "intent": citation["intent"],
+                           "year": citation["year"],
+                           "venue": citation["venue"],
+                           "title": citation["title"],
+                           "doi": citation["doi"]
+                           }
                           for citation in s2paper["citations"]],
             "references": [{"paperId": reference["paperId"],
-                            "intent": reference["intent"],
-                            "isInfluential": reference["isInfluential"]}
+                           "isInfluential": reference["isInfluential"],
+                           "intent": reference["intent"],
+                           "year": reference["year"],
+                           "venue": reference["venue"],
+                           "title": reference["title"],
+                           "doi": reference["doi"]
+                           }
                            for reference in s2paper["references"]],
             "authors": [{"authorId": author["authorId"],
                          "name": author["name"]} for author in s2paper["authors"]]
