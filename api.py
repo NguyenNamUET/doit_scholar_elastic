@@ -10,12 +10,11 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_constant.constants import PAPER_DOCUMENT_INDEX
 
 from es_service.es_search.es_search_paper import get_paper_by_id, count_papers, count_fields_of_study, \
-    count_topics, get_some_citations, get_some_references
+    count_topics, get_some_citations, get_some_references, generate_citations_graph
 from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
     search_by_topics, search_on_typing
 from es_service.es_search.es_search_author import count_authors, get_author_by_id, get_some_papers, get_author_by_name
 
-import asyncio
 
 app = FastAPI()
 
@@ -47,7 +46,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-# Run command: uvicorn api:app --reload --workers
+# Run command: uvicorn api:app --reload --workers=5
 
 class paperItem(BaseModel):
     search_content: Optional[str] = "neural"
@@ -88,11 +87,19 @@ class authorItem(BaseModel):
 
 ################################# All papers api ###########################
 @app.get("/s2api/papers/{paperID}")
-async def getpaperByID(paperID: str, citations_year_range: Optional[int] = 10):
+async def getpaperByID(paperID: str):
     result = await get_paper_by_id(es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
-                                   paper_id=paperID,
-                                   citations_year_range=citations_year_range)
+                                   paper_id=paperID)
+    return result
+
+
+@app.get("/s2api/papers/{paperID}/citationsGraph")
+def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 10):
+    result = generate_citations_graph(es=elasticsearch_connection,
+                                      index=PAPER_DOCUMENT_INDEX,
+                                      paper_id=paperID,
+                                      citations_year_range=citations_year_range)
     return result
 
 

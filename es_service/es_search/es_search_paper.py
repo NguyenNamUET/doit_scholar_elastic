@@ -11,10 +11,8 @@ from es_service.es_constant.constants import HEADERS, PROXY
 
 import asyncio
 import requests
-import random
 
-
-##Straight forward functions (no building query by hand)
+##COUNTING FUNCTIONS
 def count_papers(es, index):
     query = {
         "query": {
@@ -59,24 +57,12 @@ def count_topics(es, index):
     return result['aggregations']['topics']["value"]
 
 
-async def get_paper_by_id(es, index, paper_id, citations_year_range=10):
-    query = {
-        "query": {
-            "match": {
-                "paperId.keyword": paper_id
-            }
-        },
-        "aggs": {
-            "citation_year_count": get_citations_aggregation_by_year(size=citations_year_range)
-        }
-    }
-    query_res = es.search(index=index, body=query)
-
-    #IF FOUND PAPER ON MY ELASTICSEARCH
-    if query_res['hits']['total']['value'] > 0:
+async def get_paper_by_id(es, index, paper_id):
+    try:
+        ############################ IF FOUND PAPER ON MY ELASTICSEARCH ###################################
+        paper = es.get(index=index, id=paper_id)
         print(f"FOUND {paper_id} ON MY API")
 
-        paper = query_res['hits']['hits'][0]['_source']
         res = {"paperId": paper["paperId"],
                "doi": paper["doi"],
                "corpusId": paper["corpusId"],
@@ -91,9 +77,7 @@ async def get_paper_by_id(es, index, paper_id, citations_year_range=10):
                "citations": [],
                "references": [],
                "citations_length": paper["citations_count"],
-               "references_length": paper["references_count"],
-
-               "citations_chart": query_res["aggregations"]["citation_year_count"]["buckets"]
+               "references_length": paper["references_count"]
                }
 
         citations = await asyncio.gather(
@@ -123,8 +107,8 @@ async def get_paper_by_id(es, index, paper_id, citations_year_range=10):
                                           "year": r["year"]})
         return res
 
-    #IF FOUND ON S2 API
-    else:
+    ####################################### IF FOUND ON S2 API ##########################################
+    except NotFoundError:
         print(f"NOT FOUND {paper_id} ON MY API")
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                 headers=HEADERS, proxies=PROXY)
@@ -161,14 +145,45 @@ async def get_paper_by_id(es, index, paper_id, citations_year_range=10):
                                "year": reference["year"]}
                               for reference in paper["references"][:5]],
                "authors": [{"authorId": author["authorId"],
-                            "name": author["name"]} for author in paper["authors"]],
-
-               "citations_chart": get_citations_aggregation_by_year__S2(paper["citations"],
-                                                                        size=citations_year_range)
+                            "name": author["name"]} for author in paper["authors"]]
                }
 
         return res
 
+
+def generate_citations_graph(es, index, paper_id, citations_year_range=10):
+    query = {
+        "query": {
+            "match": {
+                "paperId.keyword": paper_id
+            }
+        },
+        "size": 0,
+        "aggs": {
+            "citation_year_count": get_citations_aggregation_by_year(size=citations_year_range)
+        }
+    }
+    query_res = es.search(index=index, body=query)
+
+    #IF FOUND PAPER ON MY ELASTICSEARCH
+    if query_res['hits']['total']['value'] > 0:
+        print(f"FOUND {paper_id} ON MY API")
+
+        res = {"citations_chart": query_res["aggregations"]["citation_year_count"]["buckets"]}
+
+        return res
+
+    #IF FOUND ON S2 API
+    else:
+        print(f"NOT FOUND {paper_id} ON MY API")
+        response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
+                                headers=HEADERS, proxies=PROXY)
+        paper = response.json()
+        res = {"citations_chart": get_citations_aggregation_by_year__S2(paper["citations"],
+                                                                        size=citations_year_range)}
+
+        return res
+    
 
 # These builder function only return part of query
 # We will assemble them later
