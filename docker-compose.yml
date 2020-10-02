@@ -36,16 +36,16 @@ services:
     networks:
       - elastic
 
-#  app:
-#    container_name: app
-#    build: .
-#    command: uvicorn api:app --host=0.0.0.0 --port=8080 #8000 for local
-#    ports:
-#      - 8080:8080 #8000:8000 for local
-#    depends_on:
-#      - elasticsearch
-#    networks:
-#      - elastic
+  app:
+    container_name: app
+    build: .
+    command: uvicorn api:app --host=0.0.0.0 --port=8000
+    ports:
+      - 8000:8000
+    depends_on:
+      - elasticsearch1
+    networks:
+      - elastic
 
 
 volumes:

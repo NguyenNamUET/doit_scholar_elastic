@@ -25,8 +25,18 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None):
                 paper = response.json()
                 if isInfluential is not None:
                     paper["isInfluential"] = isInfluential
+
                 print(f"found {paper_id} on s2 api")
-                return paper
+                return {"paperId": paper["paperId"],
+                        "title": paper["title"],
+                        "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
+                                    paper["authors"]],
+                        "citations_count": len(paper["citations"]),
+                        "references_count": len(paper["references"]),
+                        "authors_count": len(paper["authors"]),
+                        "isInfluential": paper["isInfluential"],
+                        "venue": paper["venue"],
+                        "year": paper["year"]}
         except Exception as e:
             print(f"paper {paper_id} failed to get {e}")
             return None
@@ -91,11 +101,10 @@ def get_citations_aggregation_by_year(size):
 def get_citations_aggregation_by_year__S2(citations, size):
     cit_counter = Counter(cit['year'] for cit in citations if cit['year'] is not None)
     cit_aggs = []
-    for sign, count in sorted(cit_counter.most_common(size)):
+    for year, count in sorted(cit_counter.most_common(size)):
         cit_aggs.append({
-            "key" : sign,
-            "doc_count" : count
-            })
+            year:count
+        })
     return cit_aggs
 
 
@@ -105,5 +114,3 @@ def get_author_default_source():
 
 def get_author_default_sort():
     return {"_score": "desc"}
-
-

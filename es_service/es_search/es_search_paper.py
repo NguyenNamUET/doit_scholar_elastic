@@ -1,7 +1,5 @@
 from elasticsearch import NotFoundError
 
-from es_service.es_helpers.es_connection import elasticsearch_connection
-
 from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_default_sort, \
     get_paper_aggregation_of_fields_of_study, get_paper_aggregation_of_authors, \
     get_paper_aggregation_of_venues, get_citations_aggregation_by_year, get_citations_aggregation_by_year__S2, \
@@ -60,9 +58,8 @@ def count_topics(es, index):
 async def get_paper_by_id(es, index, paper_id):
     try:
         ############################ IF FOUND PAPER ON MY ELASTICSEARCH ###################################
-        paper = es.get(index=index, id=paper_id)
+        paper = es.get(index=index, id=paper_id)["_source"]
         print(f"FOUND {paper_id} ON MY API")
-
         res = {"paperId": paper["paperId"],
                "doi": paper["doi"],
                "corpusId": paper["corpusId"],
@@ -70,88 +67,68 @@ async def get_paper_by_id(es, index, paper_id):
                "venue": paper["venue"],
                "year": paper["year"],
                "abstract": paper["abstract"],
+               "citations_count": paper["citations_count"],
+               "references_count": paper["references_count"],
+               "authors_count": paper["authors_count"],
                "authors": paper["authors"],
                "fieldsOfStudy": paper["fieldsOfStudy"],
                "topics": paper["topics"],
+               "influentialCitationCount": paper["influentialCitationCount"],
                "citationVelocity": paper["citationVelocity"],
                "citations": [],
-               "references": [],
-               "citations_length": paper["citations_count"],
-               "references_length": paper["references_count"]
+               "references": []
                }
 
+    except NotFoundError:
+        ####################################### IF FOUND ON S2 API ##########################################
+        print(f"NOT FOUND {paper_id} ON MY API")
+        try:
+            response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
+                                    headers=HEADERS, proxies=PROXY)
+            paper = response.json()
+            res = {"paperId": paper["paperId"],
+                   "corpusId": paper["corpusId"],
+                   "title": paper["title"],
+                   "abstract": paper["abstract"],
+                   "venue": paper["venue"],
+                   "year": paper["year"],
+                   "citationVelocity": paper["citationVelocity"],
+                   "doi": paper["doi"],
+                   "influentialCitationCount": paper["influentialCitationCount"],
+                   "citations_count": len(paper["citations"]),
+                   "references_count": len(paper["references"]),
+                   "authors_count": len(paper["authors"]),
+                   "fieldsOfStudy": paper["fieldsOfStudy"],
+                   "topics": [{"topic": topic["topic"],
+                               "topicId": topic["topicId"]}
+                              for topic in paper["topics"]],
+                   "citations": [],
+                   "references": [],
+                   "authors": [{"authorId": author["authorId"],
+                                "name": author["name"]} for author in paper["authors"]]
+                   }
+        except Exception as e:
+            res, paper = None, None
+
+    ########## Append citations and references to res ##########
+    if res is not None and paper is not None:
         citations = await asyncio.gather(
             *(get_paper_from_id(es, index, citation["paperId"], citation["isInfluential"])
               for citation in paper["citations"][:5]))
-        for c in citations:
-            if c is not None:
-                res["citations"].append({"paperId": c["paperId"],
-                                         "title": c["title"],
-                                         "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
-                                                     c["authors"]],
-                                         "isInfluential": c["isInfluential"],
-                                         "venue": c["venue"],
-                                         "year": c["year"]})
+        res["citations"] = [c for c in citations if c is not None]
 
         references = await asyncio.gather(
             *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
               for reference in paper["references"][:5]))
-        for r in references:
-            if r is not None:
-                res["references"].append({"paperId": r["paperId"],
-                                          "title": r["title"],
-                                          "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
-                                                      r["authors"]],
-                                          "isInfluential": r["isInfluential"],
-                                          "venue": r["venue"],
-                                          "year": r["year"]})
-        return res
-
-    ####################################### IF FOUND ON S2 API ##########################################
-    except NotFoundError:
-        print(f"NOT FOUND {paper_id} ON MY API")
-        response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS, proxies=PROXY)
-        paper = response.json()
-        res = {"paperId": paper["paperId"],
-               "corpusId": paper["corpusId"],
-               "title": paper["title"],
-               "abstract": paper["abstract"],
-               "venue": paper["venue"],
-               "year": paper["year"],
-               "citationVelocity": paper["citationVelocity"],
-               "doi": paper["doi"],
-               "influentialCitationCount": paper["influentialCitationCount"],
-               "citations_length": len(paper["citations"]),
-               "topics": [{"topic": topic["topic"],
-                           "topicId": topic["topicId"]}
-                          for topic in paper["topics"]],
-               "references_length": len(paper["references"]),
-               "fieldsOfStudy": paper["fieldsOfStudy"],
-               "citations": [{"paperId": citation["paperId"],
-                              "title": citation["title"],
-                              "authors": citation["authors"],
-                              "isInfluential": citation["isInfluential"],
-                              "intent": citation["intent"],
-                              "venue": citation["venue"],
-                              "year": citation["year"]}
-                             for citation in paper["citations"][:5]],
-               "references": [{"paperId": reference["paperId"],
-                               "title": reference["title"],
-                               "authors": reference["authors"],
-                               "isInfluential": reference["isInfluential"],
-                               "intent": reference["intent"],
-                               "venue": reference["venue"],
-                               "year": reference["year"]}
-                              for reference in paper["references"][:5]],
-               "authors": [{"authorId": author["authorId"],
-                            "name": author["name"]} for author in paper["authors"]]
-               }
+        res["references"] = [r for r in references if r is not None]
 
         return res
 
+    else:
+        return None
 
-def generate_citations_graph(es, index, paper_id, citations_year_range=10):
+
+def generate_citations_graph(es, index, paper_id, citations_year_range=200):
     query = {
         "query": {
             "match": {
@@ -169,7 +146,7 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=10):
     if query_res['hits']['total']['value'] > 0:
         print(f"FOUND {paper_id} ON MY API")
 
-        res = {"citations_chart": query_res["aggregations"]["citation_year_count"]["buckets"]}
+        res = {"citations_chart": [{bucket['key']:bucket['doc_count']} for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]]}
 
         return res
 
@@ -401,11 +378,12 @@ def search_by_title(es, index, search_content,
                     return_venue_aggs=False,
                     deep_pagination=False, last_paper_id=None,
                     return_top_author=False, top_author_size=10):
-    common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
+    common_query = common_query__builder(start=start, size=size, source=source, sort_by=[{"_score": "desc"},{"citations_count": "desc"},{"references_count": "desc"}],
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
                                          return_venue_aggs=return_venue_aggs,
                                          deep_pagination=deep_pagination, last_paper_id=last_paper_id)
+
     title_query = search_paper_title__builder(search_content=search_content)
     query = {"query":
                  {"bool":
@@ -521,7 +499,7 @@ def search_by_topics(es, index,
 
 
 def search_on_typing(es, index, search_content, size=10):
-    common_query = common_query__builder(source=["title", "citations_count"], sort_by=[{"citations_count": "desc"}],
+    common_query = common_query__builder(source=["title", "citations_count", "year"], sort_by=[{"citations_count": "desc"}],
                                          size=size)
     title_query = search_paper_title__builder(search_content=search_content)
     query = {"query":
@@ -643,7 +621,5 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
 
 
 if __name__ == "__main__":
-    print(asyncio.run(get_paper_by_id(es=elasticsearch_connection,
-                                      index="paper",
-                                      paper_id="09dca39fa270484f047e9d6d9d64cd79460b214f",
-                                      )))
+    a, b = None, None
+    print(a)
