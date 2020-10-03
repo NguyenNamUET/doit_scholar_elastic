@@ -378,7 +378,8 @@ def search_by_title(es, index, search_content,
                     return_venue_aggs=False,
                     deep_pagination=False, last_paper_id=None,
                     return_top_author=False, top_author_size=10):
-    common_query = common_query__builder(start=start, size=size, source=source, sort_by=[{"_score": "desc"},{"citations_count": "desc"},{"references_count": "desc"}],
+    common_query = common_query__builder(start=start, size=size, source=source,
+                                         sort_by=[{"_score": "desc"},{"citations_count": "desc"},{"references_count": "desc"}],
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
                                          return_venue_aggs=return_venue_aggs,
@@ -620,6 +621,3 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
     return result
 
 
-if __name__ == "__main__":
-    a, b = None, None
-    print(a)
