@@ -146,8 +146,8 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
     if query_res['hits']['total']['value'] > 0:
         print(f"FOUND {paper_id} ON MY API")
 
-        res = {"citations_chart": [{bucket['key']:bucket['doc_count']} for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]]}
-
+        res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
+        print(res)
         return res
 
     #IF FOUND ON S2 API

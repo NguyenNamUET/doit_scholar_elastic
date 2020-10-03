@@ -100,11 +100,8 @@ def get_citations_aggregation_by_year(size):
 
 def get_citations_aggregation_by_year__S2(citations, size):
     cit_counter = Counter(cit['year'] for cit in citations if cit['year'] is not None)
-    cit_aggs = []
-    for year, count in sorted(cit_counter.most_common(size)):
-        cit_aggs.append({
-            year:count
-        })
+    cit_aggs = {year:count for year, count in sorted(cit_counter.most_common(size))}
+
     return cit_aggs
 
 

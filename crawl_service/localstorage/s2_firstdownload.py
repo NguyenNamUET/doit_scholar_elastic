@@ -61,7 +61,7 @@ def download_data(start, end=None):
     paper_sitemaps = paper_sitemaps_list[start:] if end is None else paper_sitemaps_list[start:end]
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         for paper_sitemap in paper_sitemaps:
-            paper_urls = crawl_second_sitemap(paper_sitemap)[:50]
+            paper_urls = crawl_second_sitemap(paper_sitemap)[:2]
             if paper_urls is not None:
                 urls_grouper = grouper(paper_urls, 1000)
                 for index, urls_group in enumerate(urls_grouper):
@@ -70,7 +70,7 @@ def download_data(start, end=None):
                     # Just ignore this
                     pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")
                     for future in pbar:
-                        pbar.set_description("Paper_sitemap_{}_group_({}/5)".format(re.findall("\d+", paper_sitemap)[0],index))
+                        pbar.set_description("Paper_sitemap_{}_group_({}/30)".format(re.findall("\d+", paper_sitemap)[0],index))
                         paper_url = future_to_url[future]
                         try:
                             paper_id = future.result()

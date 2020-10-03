@@ -95,7 +95,7 @@ async def getpaperByID(paperID: str):
 
 
 @app.get("/s2api/papers/{paperID}/citationsGraph")
-def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 10):
+def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 100):
     result = generate_citations_graph(es=elasticsearch_connection,
                                       index=PAPER_DOCUMENT_INDEX,
                                       paper_id=paperID,
