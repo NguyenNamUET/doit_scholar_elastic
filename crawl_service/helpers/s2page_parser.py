@@ -11,11 +11,11 @@ def get_pdf_link_and_name(paper_url, sitemap_id):
 
         source = soup.find("a", {"class":"icon-button button--full-width button--primary"})
         pdf_link = None
-        if source is not None:
+        if source is not None and re.search(".pdf$", source["href"]) is not None:
             pdf_link = source["href"]
 
         alternate_source = soup.find("a", {"class":"icon-button alternate-source-link-button"})
-        if alternate_source is not None:
+        if alternate_source is not None and re.search(".pdf$", alternate_source["link"]) is not None:
             pdf_link = alternate_source["link"]
 
         pdf_name = soup.find("meta", {"name":"citation_title"})["content"]
