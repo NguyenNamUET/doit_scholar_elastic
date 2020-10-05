@@ -626,7 +626,3 @@ def generate_FOS_donut_graph(es, index, size=10):
     return {fos["key"]: fos["doc_count"] for fos in top_fos}
 
 
-if __name__ == '__main__':
-    from es_service.es_helpers.es_connection import elasticsearch_connection
-    print(generate_FOS_donut_graph__homepage(elasticsearch_connection, "paper"))
-
