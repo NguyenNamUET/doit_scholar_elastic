@@ -661,4 +661,4 @@ def generate_venues_graph(es, index, size=1000):
     }
     top_venues = es.search(index=index, body=query)["aggregations"]["venue_aggs"]["buckets"]
     print("generate_venue_graph result: ", top_venues)
-    return {("Anonymous" if venue["key"] == "" else venue["key"]): venue["doc_count"] for venue in top_venues}
+    return {venue["key"]: venue["doc_count"] for venue in top_venues if venue["key"]!=""}
