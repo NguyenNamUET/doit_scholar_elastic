@@ -10,11 +10,12 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_constant.constants import PAPER_DOCUMENT_INDEX
 
 from es_service.es_search.es_search_paper import get_paper_by_id, count_papers, count_fields_of_study, \
-    count_topics, get_some_citations, get_some_references, generate_citations_graph
+    count_topics, get_some_citations, get_some_references, generate_citations_graph, generate_FOS_donut_graph
 from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
     search_by_topics, search_on_typing
-from es_service.es_search.es_search_author import count_authors, get_author_by_id, get_some_papers, get_author_by_name
-
+from es_service.es_search.es_search_paper import get_some_papers_for_homepage
+from es_service.es_search.es_search_author import count_authors, get_author_by_id, get_some_papers, \
+    get_some_authors_for_homepage
 
 app = FastAPI()
 
@@ -100,6 +101,14 @@ def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 1
                                       index=PAPER_DOCUMENT_INDEX,
                                       paper_id=paperID,
                                       citations_year_range=citations_year_range)
+    return result
+
+
+@app.post("/s2api/papers/fosGraph")
+def generateFOSdonutGraph(size: Optional[int] = 10):
+    result = generate_FOS_donut_graph(es=elasticsearch_connection,
+                                      index=PAPER_DOCUMENT_INDEX,
+                                      size=size)
     return result
 
 
@@ -194,6 +203,14 @@ async def getSomeReferences(paperID: str, start: Optional[int] = 0, size: Option
     return result
 
 
+@app.get("/s2api/papers/homepagePapers")
+def getSomePapersForHomepage(size: Optional[int] = 3):
+    result = get_some_papers_for_homepage(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                                          size=size)
+
+    return result
+
+
 @app.post("/s2api/papers/searchOnTyping")
 def searchOnTyping(query: paperItem):
     result = search_on_typing(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
@@ -211,18 +228,10 @@ def countAuthors():
 
 
 @app.get("/s2api/authors/{author_id}")
-def getAuthorById(author_id: str):
-    result = get_author_by_id(es=elasticsearch_connection,
-                              index=PAPER_DOCUMENT_INDEX,
-                              author_id=author_id)
-    return result
-
-
-@app.post("/s2api/authors/getAuthorByName")
-def getAuthorByName(query: authorItem):
-    result = get_author_by_name(es=elasticsearch_connection,
-                                index=PAPER_DOCUMENT_INDEX,
-                                author_name=query.author_name)
+async def getAuthorById(author_id: str):
+    result = await get_author_by_id(es=elasticsearch_connection,
+                                    index=PAPER_DOCUMENT_INDEX,
+                                    author_id=author_id)
     return result
 
 
@@ -231,5 +240,13 @@ def getSomePapers(author_id: str, start: Optional[int] = 0, size: Optional[int] 
     result = get_some_papers(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                              author_id=author_id,
                              start=start, size=size)
+
+    return result
+
+
+@app.post("/s2api/authors/homepageAuthors")
+async def getSomeAuthorsForHomepage(size: Optional[int] = 3):
+    result = await get_some_authors_for_homepage(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                                                 size=size)
 
     return result

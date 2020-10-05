@@ -9,6 +9,8 @@ from es_service.es_constant.constants import HEADERS, PROXY
 
 import asyncio
 import requests
+import random
+
 
 ##COUNTING FUNCTIONS
 def count_papers(es, index):
@@ -135,7 +137,7 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
                 "paperId.keyword": paper_id
             }
         },
-        "size": 0,
+        "_source": ["citations"],
         "aggs": {
             "citation_year_count": get_citations_aggregation_by_year(size=citations_year_range)
         }
@@ -146,8 +148,9 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
     if query_res['hits']['total']['value'] > 0:
         print(f"FOUND {paper_id} ON MY API")
 
-        res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
-        print(res)
+        #res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
+        res = {"citations_chart": get_citations_aggregation_by_year__S2(query_res["hits"]["hits"][0]["_source"]["citations"],
+                                                                        size=citations_year_range)}
         return res
 
     #IF FOUND ON S2 API
@@ -519,40 +522,6 @@ def search_on_typing(es, index, search_content, size=10):
     return result["hits"]["hits"]
 
 
-# def get_some_citations(es, index,
-#                          paper_id,
-#                          start=0, size=5):
-#     try:
-#         paper = es.get(index=index, id=paper_id)
-#         paper_ids = [citation["paperId"] for citation in paper["_source"]["citations"][start:start + size]]
-#         print(paper_ids)
-#         common_query = common_query__builder(start=start, size=size,
-#                                              source=["paperId", "doi", "authors", "fieldsOfStudy", "title", "topics"],
-#                                              return_top_author=True, top_author_size=10,
-#                                              return_fos_aggs=True,
-#                                              return_venue_aggs=True)
-#         query = {
-#             "query": {
-#                 "bool": {
-#                     "should": []
-#                 }
-#             }
-#         }
-#         for pid in paper_ids:
-#             query["query"]["bool"]["should"].append({
-#                 "match": {
-#                     "paperId.keyword": pid
-#                 }
-#             })
-#
-#         query.update(common_query)
-#         print('get_some_citations_2 query: ', query)
-#         result = es.search(index=index, body=query)
-#         # print('get_some_citations_2 result: ', result)
-#
-#     except NotFoundError:
-#         print('paper {} not found'.format(paper_id))
-#         return {}
 async def get_some_citations(es, index, paper_id, start=5, size=5):
     result = []
     try:
@@ -620,4 +589,44 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
                   for reference in paper["references"][start:(start + size)]]
     return result
 
+
+##################################### HOMEPAGE FUNCTION ###############################################
+def get_some_papers_for_homepage(es, index, size=3):
+    query = {
+              "query":{
+                "match_all" : {}
+              },
+              "from": random.randint(0, 100),
+              "size": size,
+              "_source": ["paperId", "title", "abstract", "citations_count", "authors"],
+              "sort": [{"citations_count": {"order": "desc"}}]
+            }
+    print("get_some_papers_for_homepage query: ", query)
+    result = es.search(index=index, body=query)
+
+    if result["hits"]["total"]["value"] == 0:
+        return {}
+
+    print("get_some_papers_for_homepage result: ", result["hits"]["hits"])
+    return result["hits"]["hits"]
+
+
+def generate_FOS_donut_graph(es, index, size=10):
+    query = {
+        "query": {
+            "match_all": {}
+        },
+        "size": 0,
+        "aggs": {
+            "fos_aggs": get_paper_aggregation_of_fields_of_study(size=size)
+        }
+    }
+    top_fos = es.search(index=index, body=query)["aggregations"]["fos_aggs"]["buckets"]
+    print("generate_FOS_donut_graph__homepage result: ", top_fos)
+    return {fos["key"]: fos["doc_count"] for fos in top_fos}
+
+
+if __name__ == '__main__':
+    from es_service.es_helpers.es_connection import elasticsearch_connection
+    print(generate_FOS_donut_graph__homepage(elasticsearch_connection, "paper"))
 

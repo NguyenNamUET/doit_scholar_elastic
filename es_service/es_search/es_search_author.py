@@ -1,8 +1,9 @@
 from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_constant.constants import HEADERS, PROXY
+from es_service.es_search.es_search_helpers import get_paper_aggregation_of_authors
 
 import requests
-
+import asyncio
 
 def count_authors(es, index):
     query = {
@@ -49,7 +50,7 @@ def get_some_papers(es, index, author_id, start=5, size=5):
     return [p["_source"] for p in res["hits"]["hits"]]
 
 
-def get_author_by_id(es, index, author_id):
+async def get_author_by_id(es, index, author_id):
     query = {
           "query": {
             "nested": {
@@ -61,8 +62,6 @@ def get_author_by_id(es, index, author_id):
               }
             }
           },
-          "from": 0,
-          "size": 5,
           "_source": ["paperId", "title", "fieldsOfStudy", "authors", "venue", "year"],
           "aggs": {
             "influentialCitationCount": {
@@ -79,6 +78,7 @@ def get_author_by_id(es, index, author_id):
     }
     res = es.search(index=index, body=query)
     if res["hits"]["total"]["value"] > 0:
+        print(f"FOUND AUTHOR {author_id} ON ELASTIC")
         author = {
                     "authorId":	author_id,
                     "influentialCitationCount":	res["aggregations"]["influentialCitationCount"]["value"],
@@ -104,10 +104,39 @@ def get_author_by_id(es, index, author_id):
         return author
 
 
+##################################### HOMEPAGE FUNCTION ###############################################
+async def get_some_authors_for_homepage(es, index, size=3):
+    p_query = {
+              "query":{
+                "match_all" : {}
+              },
+              "size": 1000,
+              "_source": ["paperId"],
+              "sort": [{"references_count": {"order": "desc"}}]
+            }
+    top_referenced_papers = es.search(index=index, body=p_query)
 
-def get_author_by_name(es, index, author_name):
-    pass
+    query = {
+        "query": {
+            "terms": {
+                "paperId.keyword": [paper["_source"]["paperId"] for paper in top_referenced_papers["hits"]["hits"]]
+            }
+        },
+        "size": 0,
+        "aggs": {
+            "authors_agg": get_paper_aggregation_of_authors(size)
+        }
+    }
+    res = es.search(index=index, body=query)
+
+    top_referenced_authors = await asyncio.gather(
+        *(get_author_by_id(es, index, author["key"])
+          for author in res["aggregations"]["authors_agg"]["name"]["buckets"]))
+
+    print("get_some_authors_for_homepage result: ", top_referenced_authors)
+    return top_referenced_authors
 
 
-if __name__ == "__main__":
-    print(count_authors(elasticsearch_connection, "paper"))
+if __name__ == '__main__':
+    from es_service.es_helpers.es_connection import elasticsearch_connection
+    asyncio.run(get_some_authors_for_homepage(elasticsearch_connection, "paper"))

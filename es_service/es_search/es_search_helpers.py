@@ -44,17 +44,19 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None):
 
 def get_paper_default_source():
     return ["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
-            "title", "topics", "citations_count", "references_count", "authors_count"]
+            "title", "topics", "citations_count", "references_count", "authors_count",
+            "pdf_url"]
 
 
 def get_paper_default_sort():
     return [{"_score": "desc"}, {"paperId.keyword": "asc"}]
 
 
-def get_paper_aggregation_of_fields_of_study():
+def get_paper_aggregation_of_fields_of_study(size=10):
     return {
         "terms": {
-            "field": "fieldsOfStudy.keyword"
+            "field": "fieldsOfStudy.keyword",
+            "size": size
         }
     }
 
