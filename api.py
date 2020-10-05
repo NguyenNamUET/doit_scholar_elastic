@@ -39,14 +39,6 @@ app.add_middleware(
 )
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
-    )
-
-
 # Run command: uvicorn api:app --reload --workers=5
 
 class paperItem(BaseModel):
@@ -87,14 +79,6 @@ class authorItem(BaseModel):
 
 
 ################################# All papers api ###########################
-@app.get("/s2api/papers/{paperID}")
-async def getpaperByID(paperID: str):
-    result = await get_paper_by_id(es=elasticsearch_connection,
-                                   index=PAPER_DOCUMENT_INDEX,
-                                   paper_id=paperID)
-    return result
-
-
 @app.get("/s2api/papers/{paperID}/citationsGraph")
 def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 100):
     result = generate_citations_graph(es=elasticsearch_connection,
@@ -104,7 +88,7 @@ def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 1
     return result
 
 
-@app.post("/s2api/papers/fosGraph")
+@app.get("/s2api/papers/fosGraph")
 def generateFOSdonutGraph(size: Optional[int] = 10):
     result = generate_FOS_donut_graph(es=elasticsearch_connection,
                                       index=PAPER_DOCUMENT_INDEX,
@@ -185,24 +169,6 @@ def searchPaperByTopics(query: paperItem):
     return result
 
 
-@app.get("/s2api/papers/{paperID}/citations")
-async def getSomeCitations(paperID: str, start: Optional[int] = 0, size: Optional[int] = 5):
-    result = await get_some_citations(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-                                      paper_id=paperID,
-                                      start=start, size=size)
-
-    return result
-
-
-@app.get("/s2api/papers/{paperID}/references")
-async def getSomeReferences(paperID: str, start: Optional[int] = 0, size: Optional[int] = 5):
-    result = await get_some_references(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-                                       paper_id=paperID,
-                                       start=start, size=size)
-
-    return result
-
-
 @app.get("/s2api/papers/homepagePapers")
 def getSomePapersForHomepage(size: Optional[int] = 3):
     result = get_some_papers_for_homepage(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
@@ -227,14 +193,6 @@ def countAuthors():
     return result
 
 
-@app.get("/s2api/authors/{author_id}")
-async def getAuthorById(author_id: str):
-    result = await get_author_by_id(es=elasticsearch_connection,
-                                    index=PAPER_DOCUMENT_INDEX,
-                                    author_id=author_id)
-    return result
-
-
 @app.get("/s2api/papers/{author_id}/papers")
 def getSomePapers(author_id: str, start: Optional[int] = 0, size: Optional[int] = 5):
     result = get_some_papers(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
@@ -244,9 +202,43 @@ def getSomePapers(author_id: str, start: Optional[int] = 0, size: Optional[int] 
     return result
 
 
-@app.post("/s2api/authors/homepageAuthors")
+
+############################################## ASYNC FUNCTION ##############################################
+@app.get("/s2api/authors/homepageAuthors")
 async def getSomeAuthorsForHomepage(size: Optional[int] = 3):
     result = await get_some_authors_for_homepage(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                                                  size=size)
+
+    return result
+
+@app.get("/s2api/papers/{paperID}")
+async def getpaperByID(paperID: str):
+    result = await get_paper_by_id(es=elasticsearch_connection,
+                                   index=PAPER_DOCUMENT_INDEX,
+                                   paper_id=paperID)
+    return result
+
+
+@app.get("/s2api/authors/{author_id}")
+async def getAuthorById(author_id: str):
+    result = await get_author_by_id(es=elasticsearch_connection,
+                                    index=PAPER_DOCUMENT_INDEX,
+                                    author_id=author_id)
+    return result
+
+
+@app.get("/s2api/papers/{paperID}/references")
+async def getSomeReferences(paperID: str, start: Optional[int] = 0, size: Optional[int] = 5):
+    result = await get_some_references(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                                       paper_id=paperID,
+                                       start=start, size=size)
+
+    return result
+
+@app.get("/s2api/papers/{paperID}/citations")
+async def getSomeCitations(paperID: str, start: Optional[int] = 0, size: Optional[int] = 5):
+    result = await get_some_citations(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                                      paper_id=paperID,
+                                      start=start, size=size)
 
     return result
