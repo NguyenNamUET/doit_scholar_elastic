@@ -479,6 +479,26 @@ def search_by_fields_of_study(es, index,
     return result["hits"]["hits"]
 
 
+def search_by_venue(es, index,
+                    venue=None,
+                    start=0, size=10, source=None, sort_by=None):
+    common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by
+                                         )
+    venue_query = search_paper_by_venues__builder(venues=venue)
+    query = {"query": venue_query}
+    query.update(common_query)
+
+    print("search_by_venue query: ", query)
+
+    result = es.search(index=index, body=query)
+
+    print("search_by_venue result: ", result)
+    if result["hits"]["total"]["value"] == 0:
+        return {}
+
+    return result["hits"]["hits"]
+
+
 def search_by_topics(es, index,
                      topics=None, topic_isShould=True,
                      start=0, size=10, source=None, sort_by=None,

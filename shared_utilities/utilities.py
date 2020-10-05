@@ -19,7 +19,7 @@ def load_url(url, error_path, return_content=False, proxy=False, return_json=Fal
     try:
         if proxy:  ##Do not reveal this proxy
             proxies = {
-                "https": "https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225"
+                'https': 'https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225'
             }
             response = requests.get(url, headers=headers, proxies=proxies)
 

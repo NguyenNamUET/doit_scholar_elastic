@@ -11,7 +11,7 @@ from es_service.es_search.es_search_paper import get_paper_by_id, count_papers, 
 from es_service.es_search.es_search_paper import generate_citations_graph, generate_FOS_donut_graph, \
     generate_venues_graph
 from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
-    search_by_topics, search_on_typing
+    search_by_topics, search_on_typing, search_by_venue
 from es_service.es_search.es_search_paper import get_some_papers_for_homepage
 
 from es_service.es_search.es_search_author import count_authors, get_author_by_id, get_some_papers, \
@@ -173,6 +173,15 @@ def searchPaperByTopics(query: paperItem):
                               return_fos_aggs=query.return_fos_aggs,
                               deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                               return_top_author=query.return_top_author, top_author_size=query.top_author_size)
+
+    return result
+
+
+@app.post("/s2api/papers/searchPaperByVenue")
+def searchPaperByVenue(query: paperItem):
+    result = search_by_venue(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
+                             venue=query.venues,
+                             start=query.start, size=query.size, source=query.source, sort_by=query.sort_by)
 
     return result
 

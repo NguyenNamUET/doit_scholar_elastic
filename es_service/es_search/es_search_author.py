@@ -160,7 +160,3 @@ async def get_some_authors_for_homepage(es, index, size=3):
     print("get_some_authors_for_homepage result: ", top_referenced_authors)
     return top_referenced_authors
 
-
-if __name__ == '__main__':
-    from es_service.es_helpers.es_connection import elasticsearch_connection
-    asyncio.run(get_some_authors_for_homepage(elasticsearch_connection, "paper"))
