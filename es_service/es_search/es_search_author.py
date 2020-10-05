@@ -50,7 +50,7 @@ def get_some_papers(es, index, author_id, start=5, size=5):
     return [p["_source"] for p in res["hits"]["hits"]]
 
 
-async def get_author_by_id(es, index, author_id):
+async def get_author_by_id(es, index, author_id, shorted=False):
     query = {
           "query": {
             "nested": {
@@ -62,11 +62,16 @@ async def get_author_by_id(es, index, author_id):
               }
             }
           },
-          "_source": ["paperId", "title", "fieldsOfStudy", "authors", "venue", "year"],
+          "_source": ["paperId", "title", "fieldsOfStudy", "authors", "venue", "year", "references_count"],
           "aggs": {
             "influentialCitationCount": {
                 "sum": {
                     "field": "influentialCitationCount"
+                }
+            },
+            "citationsCount": {
+                "sum": {
+                    "field": "citations_count"
                 }
             },
             "totalPapers": {
@@ -79,10 +84,20 @@ async def get_author_by_id(es, index, author_id):
     res = es.search(index=index, body=query)
     if res["hits"]["total"]["value"] > 0:
         print(f"FOUND AUTHOR {author_id} ON ELASTIC")
-        author = {
+        if shorted:
+            author = {
                     "authorId":	author_id,
                     "influentialCitationCount":	res["aggregations"]["influentialCitationCount"]["value"],
                     "totalPapers": res["aggregations"]["totalPapers"]["value"],
+                    "citationsCount": res["aggregations"]["citationsCount"]["value"],
+                    "name":	[p["name"] for p in res["hits"]["hits"][0]["_source"]["authors"] if p["authorId"] == author_id][0]
+                    }
+        else:
+            author = {
+                    "authorId":	author_id,
+                    "influentialCitationCount":	res["aggregations"]["influentialCitationCount"]["value"],
+                    "totalPapers": res["aggregations"]["totalPapers"]["value"],
+                    "citationsCount": res["aggregations"]["citationsCount"]["value"],
                     "name":	[p["name"] for p in res["hits"]["hits"][0]["_source"]["authors"] if p["authorId"] == author_id][0],
                     "papers": [p["_source"] for p in res["hits"]["hits"]]
                  }
@@ -92,15 +107,24 @@ async def get_author_by_id(es, index, author_id):
         response = requests.get("https://api.semanticscholar.org/v1/author/{}".format(author_id),
                                 headers=HEADERS, proxies=PROXY)
         json_res = response.json()
-        author = {
-            "authorId": author_id,
-            "influentialCitationCount": json_res["influentialCitationCount"],
-            "totalPapers": len(json_res["papers"]),
-            "name": json_res["name"],
-            "papers": [{"paperId":paper["paperId"],
-                        "title": paper["title"],
-                        "year": paper["year"]} for paper in json_res["papers"][:5]]
-        }
+        if shorted:
+            author = {
+                "authorId": author_id,
+                "influentialCitationCount": json_res["influentialCitationCount"],
+                "citationsCount": 0,
+                "totalPapers": len(json_res["papers"]),
+                "name": json_res["name"]
+            }
+        else:
+            author = {
+                "authorId": author_id,
+                "influentialCitationCount": json_res["influentialCitationCount"],
+                "totalPapers": len(json_res["papers"]),
+                "name": json_res["name"],
+                "papers": [{"paperId":paper["paperId"],
+                            "title": paper["title"],
+                            "year": paper["year"]} for paper in json_res["papers"][:5]]
+            }
         return author
 
 
@@ -112,7 +136,7 @@ async def get_some_authors_for_homepage(es, index, size=3):
               },
               "size": 1000,
               "_source": ["paperId"],
-              "sort": [{"references_count": {"order": "desc"}}]
+              "sort": [{"citations_count": {"order": "desc"}}]
             }
     top_referenced_papers = es.search(index=index, body=p_query)
 
@@ -130,10 +154,13 @@ async def get_some_authors_for_homepage(es, index, size=3):
     res = es.search(index=index, body=query)
 
     top_referenced_authors = await asyncio.gather(
-        *(get_author_by_id(es, index, author["key"])
+        *(get_author_by_id(es, index, author["key"], True)
           for author in res["aggregations"]["authors_agg"]["name"]["buckets"]))
 
     print("get_some_authors_for_homepage result: ", top_referenced_authors)
     return top_referenced_authors
 
 
+if __name__ == '__main__':
+    from es_service.es_helpers.es_connection import elasticsearch_connection
+    asyncio.run(get_some_authors_for_homepage(elasticsearch_connection, "paper"))

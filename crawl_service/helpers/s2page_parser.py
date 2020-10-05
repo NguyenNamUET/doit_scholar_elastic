@@ -81,7 +81,7 @@ def crawl_second_sitemap(sitemap_url):
                         by_line=True, is_append=True)
         return [sitemap.text for sitemap in all_paper_urls_soup]
     except Exception as e:
-        print("Sitemap {} caused error {} HELLLOO".format(sitemap_id, e))
+        print("Sitemap {} caused error {}".format(sitemap_id, e))
 
 
 if __name__ == '__main__':
