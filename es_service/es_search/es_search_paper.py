@@ -144,16 +144,17 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
     }
     query_res = es.search(index=index, body=query)
 
-    #IF FOUND PAPER ON MY ELASTICSEARCH
+    # IF FOUND PAPER ON MY ELASTICSEARCH
     if query_res['hits']['total']['value'] > 0:
         print(f"FOUND {paper_id} ON MY API")
 
-        #res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
-        res = {"citations_chart": get_citations_aggregation_by_year__S2(query_res["hits"]["hits"][0]["_source"]["citations"],
-                                                                        size=citations_year_range)}
+        # res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
+        res = {"citations_chart": get_citations_aggregation_by_year__S2(
+            query_res["hits"]["hits"][0]["_source"]["citations"],
+            size=citations_year_range)}
         return res
 
-    #IF FOUND ON S2 API
+    # IF FOUND ON S2 API
     else:
         print(f"NOT FOUND {paper_id} ON MY API")
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
@@ -163,7 +164,7 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
                                                                         size=citations_year_range)}
 
         return res
-    
+
 
 # These builder function only return part of query
 # We will assemble them later
@@ -382,7 +383,8 @@ def search_by_title(es, index, search_content,
                     deep_pagination=False, last_paper_id=None,
                     return_top_author=False, top_author_size=10):
     common_query = common_query__builder(start=start, size=size, source=source,
-                                         sort_by=[{"_score": "desc"},{"citations_count": "desc"},{"references_count": "desc"}],
+                                         sort_by=[{"_score": "desc"}, {"citations_count": "desc"},
+                                                  {"references_count": "desc"}],
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
                                          return_venue_aggs=return_venue_aggs,
@@ -503,7 +505,8 @@ def search_by_topics(es, index,
 
 
 def search_on_typing(es, index, search_content, size=10):
-    common_query = common_query__builder(source=["title", "citations_count", "year"], sort_by=[{"citations_count": "desc"}],
+    common_query = common_query__builder(source=["title", "citations_count", "year"],
+                                         sort_by=[{"citations_count": "desc"}],
                                          size=size)
     title_query = search_paper_title__builder(search_content=search_content)
     query = {"query":
@@ -593,14 +596,14 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
 ##################################### HOMEPAGE FUNCTION ###############################################
 def get_some_papers_for_homepage(es, index, size=3):
     query = {
-              "query":{
-                "match_all" : {}
-              },
-              "from": random.randint(0, 100),
-              "size": size,
-              "_source": ["paperId", "title", "abstract", "citations_count", "authors"],
-              "sort": [{"citations_count": {"order": "desc"}}]
-            }
+        "query": {
+            "match_all": {}
+        },
+        "from": random.randint(0, 100),
+        "size": size,
+        "_source": ["paperId", "title", "abstract", "citations_count", "authors"],
+        "sort": [{"citations_count": {"order": "desc"}}]
+    }
     print("get_some_papers_for_homepage query: ", query)
     result = es.search(index=index, body=query)
 
@@ -626,3 +629,16 @@ def generate_FOS_donut_graph(es, index, size=10):
     return {fos["key"]: fos["doc_count"] for fos in top_fos}
 
 
+def generate_venues_graph(es, index, size=1000):
+    query = {
+        "query": {
+            "match_all": {}
+        },
+        "size": 0,
+        "aggs": {
+            "venue_aggs": get_paper_aggregation_of_venues(size=size)
+        }
+    }
+    top_venues = es.search(index=index, body=query)["aggregations"]["venue_aggs"]["buckets"]
+    print("generate_venue_graph result: ", top_venues)
+    return {("Anonymous" if venue["key"] == "" else venue["key"]): venue["doc_count"] for venue in top_venues}

@@ -7,10 +7,13 @@ from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_constant.constants import PAPER_DOCUMENT_INDEX
 
 from es_service.es_search.es_search_paper import get_paper_by_id, count_papers, count_fields_of_study, \
-    count_topics, get_some_citations, get_some_references, generate_citations_graph, generate_FOS_donut_graph
+    count_topics, get_some_citations, get_some_references
+from es_service.es_search.es_search_paper import generate_citations_graph, generate_FOS_donut_graph, \
+    generate_venues_graph
 from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
     search_by_topics, search_on_typing
 from es_service.es_search.es_search_paper import get_some_papers_for_homepage
+
 from es_service.es_search.es_search_author import count_authors, get_author_by_id, get_some_papers, \
     get_some_authors_for_homepage
 
@@ -90,6 +93,14 @@ def generateFOSdonutGraph(size: Optional[int] = 10):
     result = generate_FOS_donut_graph(es=elasticsearch_connection,
                                       index=PAPER_DOCUMENT_INDEX,
                                       size=size)
+    return result
+
+
+@app.get("/s2api/papers/venuesGraph")
+def generateVenuesGraph(size: Optional[int] = 1000):
+    result = generate_venues_graph(es=elasticsearch_connection,
+                                   index=PAPER_DOCUMENT_INDEX,
+                                   size=size)
     return result
 
 
@@ -199,7 +210,6 @@ def getSomePapers(author_id: str, start: Optional[int] = 0, size: Optional[int] 
     return result
 
 
-
 ############################################## ASYNC FUNCTION ##############################################
 @app.get("/s2api/authors/homepageAuthors")
 async def getSomeAuthorsForHomepage(size: Optional[int] = 3):
@@ -207,6 +217,7 @@ async def getSomeAuthorsForHomepage(size: Optional[int] = 3):
                                                  size=size)
 
     return result
+
 
 @app.get("/s2api/papers/{paperID}")
 async def getpaperByID(paperID: str):
@@ -231,6 +242,7 @@ async def getSomeReferences(paperID: str, start: Optional[int] = 0, size: Option
                                        start=start, size=size)
 
     return result
+
 
 @app.get("/s2api/papers/{paperID}/citations")
 async def getSomeCitations(paperID: str, start: Optional[int] = 0, size: Optional[int] = 5):

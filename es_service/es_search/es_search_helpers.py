@@ -61,10 +61,11 @@ def get_paper_aggregation_of_fields_of_study(size=10):
     }
 
 
-def get_paper_aggregation_of_venues():
+def get_paper_aggregation_of_venues(size=10):
     return {
         "terms": {
-            "field": "venue.keyword"
+            "field": "venue.keyword",
+            "size": size
         }
     }
 
