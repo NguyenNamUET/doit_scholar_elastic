@@ -20,14 +20,9 @@ from es_service.es_search.es_search_author import count_authors, get_author_by_i
 app = FastAPI()
 
 origins = [
-    "http://localhost",
+    "http://127.0.0.1:3000",
     "http://localhost:3000",
-    "https://localhost:3000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-    "http://192.168.1.54:3400"
-    # "http://112.137.142.8:7778",
-    # "http://112.137.142.8:3400"
+    "http://51.210.251.250:3400"
 ]
 
 app.add_middleware(
@@ -104,21 +99,21 @@ def generateVenuesGraph(size: Optional[int] = 1000):
     return result
 
 
-@app.post("/s2api/papers/countPapers")
+@app.get("/s2api/papers/countPapers")
 def countPapers():
     result = count_papers(es=elasticsearch_connection,
                           index=PAPER_DOCUMENT_INDEX)
     return result
 
 
-@app.post("/s2api/papers/countFOS")
+@app.get("/s2api/papers/countFOS")
 def countFOS():
     result = count_fields_of_study(es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX)
     return result
 
 
-@app.post("/s2api/papers/countTopics")
+@app.get("/s2api/papers/countTopics")
 def countTopics():
     result = count_topics(es=elasticsearch_connection,
                           index=PAPER_DOCUMENT_INDEX)

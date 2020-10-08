@@ -87,7 +87,7 @@ async def get_paper_by_id(es, index, paper_id):
         print(f"NOT FOUND {paper_id} ON MY API")
         try:
             response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                    headers=HEADERS, proxies=PROXY)
+                                    headers=HEADERS)#proxies=PROXY
             paper = response.json()
             res = {"paperId": paper["paperId"],
                    "corpusId": paper["corpusId"],
@@ -160,7 +160,7 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
     else:
         print(f"NOT FOUND {paper_id} ON MY API")
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS, proxies=PROXY)
+                                headers=HEADERS)#proxies=PROXY
         paper = response.json()
         res = {"citations_chart": get_citations_aggregation_by_year__S2(paper["citations"],
                                                                         size=citations_year_range)}
@@ -568,7 +568,7 @@ async def get_some_citations(es, index, paper_id, start=5, size=5):
 
     except NotFoundError:
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS, proxies=PROXY)
+                                headers=HEADERS)#proxies=PROXY
         paper = response.json()
         result = [{"paperId": citation["paperId"],
                    "title": citation["title"],
@@ -602,7 +602,7 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
 
     except NotFoundError:
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS, proxies=PROXY)
+                                headers=HEADERS)#proxies=PROXY
         paper = response.json()
         result = [{"paperId": reference["paperId"],
                    "title": reference["title"],
