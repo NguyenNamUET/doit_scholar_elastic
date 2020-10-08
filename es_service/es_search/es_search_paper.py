@@ -5,6 +5,7 @@ from es_service.es_search.es_search_helpers import get_paper_default_source, get
     get_paper_aggregation_of_venues, get_citations_aggregation_by_year, get_citations_aggregation_by_year__S2, \
     get_paper_from_id
 
+
 from es_service.es_constant.constants import HEADERS, PROXY
 
 import asyncio
@@ -123,6 +124,7 @@ async def get_paper_by_id(es, index, paper_id):
             *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
               for reference in paper["references"][:5]))
         res["references"] = [r for r in references if r is not None]
+
 
         return res
 

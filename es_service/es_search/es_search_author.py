@@ -1,6 +1,6 @@
-from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_constant.constants import HEADERS, PROXY
-from es_service.es_search.es_search_helpers import get_paper_aggregation_of_authors
+from es_service.es_search.es_search_helpers import get_paper_aggregation_of_authors, \
+    calculatet_paper_hindex, get_paper_from_id, sum
 
 import requests
 import asyncio
@@ -62,7 +62,7 @@ async def get_author_by_id(es, index, author_id, shorted=False):
               }
             }
           },
-          "_source": ["paperId", "title", "fieldsOfStudy", "authors", "venue", "year", "references_count"],
+          "_source": ["paperId", "citations_count", "authors"],
           "aggs": {
             "influentialCitationCount": {
                 "sum": {
@@ -82,12 +82,14 @@ async def get_author_by_id(es, index, author_id, shorted=False):
           }
     }
     res = es.search(index=index, body=query)
+
     if res["hits"]["total"]["value"] > 0:
         print(f"FOUND AUTHOR {author_id} ON ELASTIC")
         if shorted:
             author = {
                     "authorId":	author_id,
                     "influentialCitationCount":	res["aggregations"]["influentialCitationCount"]["value"],
+                    "h_index": calculatet_paper_hindex([p["_source"]["citations_count"] for p in res["hits"]["hits"]]),
                     "totalPapers": res["aggregations"]["totalPapers"]["value"],
                     "citationsCount": res["aggregations"]["citationsCount"]["value"],
                     "name":	[p["name"] for p in res["hits"]["hits"][0]["_source"]["authors"] if p["authorId"] == author_id][0]
@@ -98,6 +100,7 @@ async def get_author_by_id(es, index, author_id, shorted=False):
                     "influentialCitationCount":	res["aggregations"]["influentialCitationCount"]["value"],
                     "totalPapers": res["aggregations"]["totalPapers"]["value"],
                     "citationsCount": res["aggregations"]["citationsCount"]["value"],
+                    "h_index": calculatet_paper_hindex([p["_source"]["citations_count"] for p in res["hits"]["hits"]]),
                     "name":	[p["name"] for p in res["hits"]["hits"][0]["_source"]["authors"] if p["authorId"] == author_id][0],
                     "papers": [p["_source"] for p in res["hits"]["hits"]]
                  }
@@ -105,13 +108,18 @@ async def get_author_by_id(es, index, author_id, shorted=False):
     else:
         print(f"NOT FOUND AUTHOR {author_id} ON MY API")
         response = requests.get("https://api.semanticscholar.org/v1/author/{}".format(author_id),
-                                headers=HEADERS, proxies=PROXY)
+                                headers=HEADERS)# proxies=PROXY
         json_res = response.json()
+
+        papers = await asyncio.gather(
+            *(get_paper_from_id(es, index, p["paperId"], with_citations=True)
+              for p in json_res["papers"]))
         if shorted:
             author = {
                 "authorId": author_id,
                 "influentialCitationCount": json_res["influentialCitationCount"],
-                "citationsCount": 0,
+                "citationsCount": sum([len(p["citations"]) for p in papers]),
+                "h_index": calculatet_paper_hindex([len(p["citations"]) for p in papers]),
                 "totalPapers": len(json_res["papers"]),
                 "name": json_res["name"]
             }
@@ -119,6 +127,8 @@ async def get_author_by_id(es, index, author_id, shorted=False):
             author = {
                 "authorId": author_id,
                 "influentialCitationCount": json_res["influentialCitationCount"],
+                "citationsCount": sum([len(p["citations"]) for p in papers]),
+                "h_index": calculatet_paper_hindex([len(p["citations"]) for p in papers]),
                 "totalPapers": len(json_res["papers"]),
                 "name": json_res["name"],
                 "papers": [{"paperId":paper["paperId"],

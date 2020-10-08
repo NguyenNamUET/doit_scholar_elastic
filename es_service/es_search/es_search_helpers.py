@@ -12,7 +12,7 @@ PROXY = httpx.Proxy(
 )
 
 
-async def get_paper_from_id(es, index, paper_id, isInfluential=None):
+async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citations=False):
     try:
         paper = es.get(index=index, id=paper_id)
         print(f"found {paper_id} on my api")
@@ -23,20 +23,21 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None):
                 response = await client.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                             headers=HEADERS)
                 paper = response.json()
+                res = {"paperId": paper["paperId"],
+                       "title": paper["title"],
+                       "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
+                                   paper["authors"]],
+                       "citations_count": len(paper["citations"]),
+                       "references_count": len(paper["references"]),
+                       "authors_count": len(paper["authors"]),
+                       "venue": paper["venue"],
+                       "year": paper["year"]}
                 if isInfluential is not None:
-                    paper["isInfluential"] = isInfluential
-
+                    res["isInfluential"] = isInfluential
+                if with_citations:
+                    res["citations"] = paper["citations"]
                 print(f"found {paper_id} on s2 api")
-                return {"paperId": paper["paperId"],
-                        "title": paper["title"],
-                        "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
-                                    paper["authors"]],
-                        "citations_count": len(paper["citations"]),
-                        "references_count": len(paper["references"]),
-                        "authors_count": len(paper["authors"]),
-                        "isInfluential": paper["isInfluential"],
-                        "venue": paper["venue"],
-                        "year": paper["year"]}
+                return res
         except Exception as e:
             print(f"paper {paper_id} failed to get {e}")
             return None
@@ -115,3 +116,27 @@ def get_author_default_source():
 
 def get_author_default_sort():
     return {"_score": "desc"}
+
+############################ MATH FUNCTION ##################################
+def calculatet_paper_hindex(citations):
+    # sorting in ascending order
+    citations.sort()
+
+    # iterating over the list
+    for i, cited in enumerate(citations):
+        # finding current result
+        result = len(citations) - i
+
+        # if result is less than or equal
+        # to cited then return result
+        if result <= cited:
+            return result
+
+    return 0
+
+def sum(items):
+    sum = 0
+    for i in items:
+        sum += i
+
+    return sum
