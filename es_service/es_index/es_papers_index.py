@@ -16,6 +16,7 @@ def index_paper_document(path):
         paper_document["references_count"] = len(paper_document["references"])
         paper_document["authors_count"] = len(paper_document["authors"])
 
+        #Calculate h-index of each author
         insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                    id=paper_document["paperId"], body=paper_document, verbose=True)
         return path

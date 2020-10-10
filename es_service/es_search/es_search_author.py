@@ -62,7 +62,7 @@ async def get_author_by_id(es, index, author_id, shorted=False):
               }
             }
           },
-          "_source": ["paperId", "citations_count", "authors"],
+          "_source": ["paperId", "citations_count", "references_count", "authors", "title", "fieldsOfStudy", "venue", "year", "influentialCitationCount"],
           "aggs": {
             "influentialCitationCount": {
                 "sum": {
@@ -111,15 +111,15 @@ async def get_author_by_id(es, index, author_id, shorted=False):
                                 headers=HEADERS)# proxies=PROXY
         json_res = response.json()
 
-        papers = await asyncio.gather(
-            *(get_paper_from_id(es, index, p["paperId"], with_citations=True)
-              for p in json_res["papers"]))
+        # papers = await asyncio.gather(
+        #     *(get_paper_from_id(es, index, p["paperId"], with_citations=True)
+        #       for p in json_res["papers"]))
         if shorted:
             author = {
                 "authorId": author_id,
                 "influentialCitationCount": json_res["influentialCitationCount"],
-                "citationsCount": sum([len(p["citations"]) for p in papers]),
-                "h_index": calculatet_paper_hindex([len(p["citations"]) for p in papers]),
+                "citationsCount": -99,#sum([len(p["citations"]) for p in papers]),
+                "h_index": -99, #calculatet_paper_hindex([len(p["citations"]) for p in papers]),
                 "totalPapers": len(json_res["papers"]),
                 "name": json_res["name"]
             }
@@ -127,8 +127,8 @@ async def get_author_by_id(es, index, author_id, shorted=False):
             author = {
                 "authorId": author_id,
                 "influentialCitationCount": json_res["influentialCitationCount"],
-                "citationsCount": sum([len(p["citations"]) for p in papers]),
-                "h_index": calculatet_paper_hindex([len(p["citations"]) for p in papers]),
+                "citationsCount": -99, #sum([len(p["citations"]) for p in papers]),
+                "h_index": -99, #calculatet_paper_hindex([len(p["citations"]) for p in papers]),
                 "totalPapers": len(json_res["papers"]),
                 "name": json_res["name"],
                 "papers": [{"paperId":paper["paperId"],
