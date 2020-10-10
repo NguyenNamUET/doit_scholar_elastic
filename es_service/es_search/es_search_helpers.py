@@ -24,7 +24,12 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citati
                                             headers=HEADERS)
                 paper = response.json()
                 res = {"paperId": paper["paperId"],
+                       "doi": paper["doi"],
                        "title": paper["title"],
+                       "abstract": paper["abstract"],
+                       "fieldsOfStudy": paper["fieldsOfStudy"],
+                       "topics": [{"topicId": p["topicId"], "topic": p["topic"]} for p in
+                                   paper["topics"]],
                        "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
                                    paper["authors"]],
                        "citations_count": len(paper["citations"]),

@@ -551,25 +551,20 @@ async def get_some_citations(es, index, paper_id, start=5, size=5):
     result = []
     try:
         paper = es.get(index=index, id=paper_id)
-
+        print(f"FOUND {paper_id} ON ELAS")
         citations = await asyncio.gather(
-            *(get_paper_from_id(es, index, citation["paperId"], citation["isInfluential"])
+            *(get_paper_from_id(es, index, citation["paperId"], isInfluential=citation["isInfluential"])
               for citation in paper['_source']["citations"][start:(start + size)]))
 
         for c in citations:
             if c is not None:
-                result.append({"paperId": c["paperId"],
-                               "title": c["title"],
-                               "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
-                                           c["authors"]],
-                               "isInfluential": c["isInfluential"],
-                               "venue": c["venue"],
-                               "year": c["year"]})
+                result.append(c)
 
     except NotFoundError:
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                 headers=HEADERS)#proxies=PROXY
         paper = response.json()
+        print(f"FOUND {paper_id} ON S2 API")
         result = [{"paperId": citation["paperId"],
                    "title": citation["title"],
                    "authors": citation["authors"],
@@ -585,25 +580,20 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
     result = []
     try:
         paper = es.get(index=index, id=paper_id)
-
+        print(f"FOUND {paper_id} ON ELAS")
         references = await asyncio.gather(
-            *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
+            *(get_paper_from_id(es, index, reference["paperId"], isInfluential=reference["isInfluential"])
               for reference in paper['_source']["references"][start:(start + size)]))
 
-        for c in references:
-            if c is not None:
-                result.append({"paperId": c["paperId"],
-                               "title": c["title"],
-                               "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
-                                           c["authors"]],
-                               "isInfluential": c["isInfluential"],
-                               "venue": c["venue"],
-                               "year": c["year"]})
+        for r in references:
+            if r is not None:
+                result.append(r)
 
     except NotFoundError:
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                 headers=HEADERS)#proxies=PROXY
         paper = response.json()
+        print(f"FOUND {paper_id} ON S2 API")
         result = [{"paperId": reference["paperId"],
                    "title": reference["title"],
                    "authors": reference["authors"],

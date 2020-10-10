@@ -62,8 +62,9 @@ async def get_author_by_id(es, index, author_id, shorted=False):
               }
             }
           },
-          "_source": ["paperId", "citations_count", "references_count", "authors",
-                      "title", "fieldsOfStudy", "topics", "venue", "year", "influentialCitationCount"],
+          "_source": ["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
+                        "title", "topics", "citations_count", "references_count", "authors_count",
+                        "pdf_url", "venue", "year"],
           "aggs": {
             "influentialCitationCount": {
                 "sum": {
