@@ -46,7 +46,7 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citati
 def get_paper_default_source():
     return ["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
             "title", "topics", "citations_count", "references_count", "authors_count",
-            "pdf_url"]
+            "pdf_url", "venue", "year"]
 
 
 def get_paper_default_sort():
