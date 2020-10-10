@@ -526,8 +526,8 @@ def search_by_topics(es, index,
     return result
 
 
-def search_on_typing(es, index, search_content, size=10):
-    common_query = common_query__builder(source=["title", "citations_count", "year"],
+def search_on_typing(es, index, search_content, source=None, size=10):
+    common_query = common_query__builder(source=source,
                                          sort_by=[{"citations_count": "desc"}],
                                          size=size)
     title_query = search_paper_title__builder(search_content=search_content)

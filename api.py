@@ -192,7 +192,8 @@ def getSomePapersForHomepage(size: Optional[int] = 3):
 @app.post("/s2api/papers/searchOnTyping")
 def searchOnTyping(query: paperItem):
     result = search_on_typing(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-                              search_content=query.search_content, size=query.size)
+                              search_content=query.search_content,
+                              source=query.source, size=query.size)
 
     return result
 
