@@ -5,6 +5,7 @@ import gzip
 import requests
 from bs4 import BeautifulSoup
 from itertools import zip_longest
+from constants.constants import HEADERS, PROXY
 
 
 def grouper(iterable, n, fillvalue=None):
@@ -13,15 +14,12 @@ def grouper(iterable, n, fillvalue=None):
 
 
 def load_url(url, error_path, return_content=False, proxy=False, return_json=False):
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
-               "Connection": "keep-alive",
-               "Accept-Language": "en-US,en;q=0.5"}
     try:
         if proxy:  ##Do not reveal this proxy
             proxies = {
-                'https': 'https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225'
+                'http': PROXY
             }
-            response = requests.get(url, headers=headers, proxies=proxies)
+            response = requests.get(url, headers=HEADERS, proxies=proxies)
 
         else:
             response = requests.get(url)

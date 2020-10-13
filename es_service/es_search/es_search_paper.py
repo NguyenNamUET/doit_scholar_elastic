@@ -5,14 +5,16 @@ from es_service.es_search.es_search_helpers import get_paper_default_source, get
     get_paper_aggregation_of_venues, get_citations_aggregation_by_year, get_citations_aggregation_by_year__S2, \
     get_paper_from_id
 
-
 from es_service.es_constant.constants import HEADERS, PROXY
 
 import asyncio
 import requests
 import random
+import re
 
-
+PROXIES = {
+    'http': PROXY
+}
 ##COUNTING FUNCTIONS
 def count_papers(es, index):
     query = {
@@ -67,17 +69,18 @@ async def get_paper_by_id(es, index, paper_id):
                "doi": paper["doi"],
                "corpusId": paper["corpusId"],
                "title": paper["title"],
+               "abstract": paper["abstract"],
                "venue": paper["venue"],
                "year": paper["year"],
-               "abstract": paper["abstract"],
+               "pdf_url": paper["pdf_url"] if re.search(".pdf", paper["pdf_url"]) is not None else "",
+               "citationVelocity": paper["citationVelocity"],
+               "influentialCitationCount": paper["influentialCitationCount"],
                "citations_count": paper["citations_count"],
                "references_count": paper["references_count"],
                "authors_count": paper["authors_count"],
                "authors": paper["authors"],
                "fieldsOfStudy": paper["fieldsOfStudy"],
                "topics": paper["topics"],
-               "influentialCitationCount": paper["influentialCitationCount"],
-               "citationVelocity": paper["citationVelocity"],
                "citations": [],
                "references": []
                }
@@ -87,28 +90,29 @@ async def get_paper_by_id(es, index, paper_id):
         print(f"NOT FOUND {paper_id} ON MY API")
         try:
             response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                    headers=HEADERS)#proxies=PROXY
+                                    headers=HEADERS, proxies=PROXIES)
             paper = response.json()
             res = {"paperId": paper["paperId"],
+                   "doi": paper["doi"],
                    "corpusId": paper["corpusId"],
                    "title": paper["title"],
                    "abstract": paper["abstract"],
                    "venue": paper["venue"],
                    "year": paper["year"],
+                   "pdf_url": None,
                    "citationVelocity": paper["citationVelocity"],
-                   "doi": paper["doi"],
                    "influentialCitationCount": paper["influentialCitationCount"],
                    "citations_count": len(paper["citations"]),
                    "references_count": len(paper["references"]),
                    "authors_count": len(paper["authors"]),
+                   "authors": [{"authorId": author["authorId"],
+                                "name": author["name"]} for author in paper["authors"]],
                    "fieldsOfStudy": paper["fieldsOfStudy"],
                    "topics": [{"topic": topic["topic"],
                                "topicId": topic["topicId"]}
                               for topic in paper["topics"]],
                    "citations": [],
                    "references": [],
-                   "authors": [{"authorId": author["authorId"],
-                                "name": author["name"]} for author in paper["authors"]]
                    }
         except Exception as e:
             res, paper = None, None
@@ -124,8 +128,6 @@ async def get_paper_by_id(es, index, paper_id):
             *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
               for reference in paper["references"][:5]))
         res["references"] = [r for r in references if r is not None]
-
-
         return res
 
     else:
@@ -160,7 +162,7 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
     else:
         print(f"NOT FOUND {paper_id} ON MY API")
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS)#proxies=PROXY
+                                headers=HEADERS, proxies=PROXIES)
         paper = response.json()
         res = {"citations_chart": get_citations_aggregation_by_year__S2(paper["citations"],
                                                                         size=citations_year_range)}
@@ -257,7 +259,7 @@ def search_paper_by_topics__builder(topics, topic_isShould=True):
     for topic in topics:
         query["bool"]["should"].append({
             "match": {
-                "topics.topic.keyword": {
+                "topics.topicId.keyword": {
                     "query": topic
                 }
             }
@@ -562,7 +564,7 @@ async def get_some_citations(es, index, paper_id, start=5, size=5):
 
     except NotFoundError:
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS)#proxies=PROXY
+                                headers=HEADERS, proxies=PROXIES)
         paper = response.json()
         print(f"FOUND {paper_id} ON S2 API")
         result = [{"paperId": citation["paperId"],
@@ -591,7 +593,7 @@ async def get_some_references(es, index, paper_id, start=5, size=5):
 
     except NotFoundError:
         response = requests.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
-                                headers=HEADERS)#proxies=PROXY
+                                headers=HEADERS, proxies=PROXIES)
         paper = response.json()
         print(f"FOUND {paper_id} ON S2 API")
         result = [{"paperId": reference["paperId"],
@@ -653,4 +655,5 @@ def generate_venues_graph(es, index, size=1000):
     }
     top_venues = es.search(index=index, body=query)["aggregations"]["venue_aggs"]["buckets"]
     print("generate_venue_graph result: ", top_venues)
-    return {venue["key"]: venue["doc_count"] for venue in top_venues if venue["key"]!="" and venue["doc_count"] >= 100}
+    return {venue["key"]: venue["doc_count"] for venue in top_venues if
+            venue["key"] != "" and venue["doc_count"] >= 100}

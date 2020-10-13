@@ -1,16 +1,11 @@
 from elasticsearch import NotFoundError
-
+from es_service.es_constant.constants import HEADERS, PROXY
 from collections import Counter
 import httpx
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
-           "Connection": "keep-alive"
-           }
-PROXY = httpx.Proxy(
-    url="https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225",
-    mode="TUNNEL_ONLY",
-)
-
+PROXIES = {
+    'http': PROXY
+}
 
 async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citations=False):
     try:
@@ -19,10 +14,11 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citati
         return paper
     except NotFoundError:
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(proxies=PROXIES) as client:
                 response = await client.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                             headers=HEADERS)
                 paper = response.json()
+
                 res = {"paperId": paper["paperId"],
                        "doi": paper["doi"],
                        "title": paper["title"],
@@ -123,7 +119,7 @@ def get_author_default_sort():
     return {"_score": "desc"}
 
 ############################ MATH FUNCTION ##################################
-def calculatet_paper_hindex(citations):
+def calculate_paper_hindex(citations):
     # sorting in ascending order
     citations.sort()
 

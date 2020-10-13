@@ -7,7 +7,7 @@ def get_pdf_link_and_name(paper_url, sitemap_id):
     try:
         soup = load_url(paper_url,
                         error_path="{}/sitemap_{}/pdf_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
-                        return_content=True)#proxy=True
+                        return_content=True, proxy=True)
 
         source = soup.find("a", {"class":"icon-button button--full-width button--primary"})
         pdf_link = None
@@ -30,7 +30,7 @@ def get_journal(paper_url, sitemap_id):
     try:
         soup = load_url(paper_url,
                         error_path="{}/sitemap_{}/journal_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
-                        return_content=True)#proxy=True
+                        return_content=True, proxy=True)
 
         source = soup.find("span", {"data-heap-id":"paper-meta-journal"})
 
@@ -47,7 +47,7 @@ def get_journal(paper_url, sitemap_id):
 def get_paper_api_v2(paperID, sitemap_id):
     paper = load_url("https://api.semanticscholar.org/v1/paper/{}".format(paperID),
                      error_path="{}/sitemap_{}/paper_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
-                     return_json=True)#proxy=True
+                     return_json=True, proxy=True)
     return paper
 
 
@@ -65,7 +65,7 @@ def extract_url_id(paper_url):
 def crawl_base_sitemap(base_sitemap):
     base_sitemap_soup = load_url(base_sitemap,
                                  error_path="{}/base_sitemap.txt".format(PAPER_METADATA_PATH),
-                                 return_content=True)#, proxy=True
+                                 return_content=True, proxy=True)
     all_sitemaps_soup = base_sitemap_soup.find_all("loc")
     return [sitemap.text for sitemap in all_sitemaps_soup]
 
@@ -75,7 +75,7 @@ def crawl_second_sitemap(sitemap_url):
     try:
         sitemap_content = load_url(sitemap_url,
                                    error_path="{}/sitemap_{}/sitemap_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
-                                   return_content=True)#, proxy=True
+                                   return_content=True, proxy=True)
         all_paper_urls_soup = sitemap_content.find_all("loc")
         write_to_record(sitemap_url, "{}/sitemap_{}/sitemap_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
                         by_line=True, is_append=True)
@@ -85,4 +85,6 @@ def crawl_second_sitemap(sitemap_url):
 
 
 if __name__ == '__main__':
-    crawl_second_sitemap("https://www.semanticscholar.org/sitemap-paper-0000000.xml")
+    print(get_pdf_link_and_name(
+        "https://www.semanticscholar.org/paper/Challenges-and-Opportunities-for-Improving-College-Goldrick-Rab/0494a3422778413abca5a53932d8344347c033e3"
+        ,"0001"))

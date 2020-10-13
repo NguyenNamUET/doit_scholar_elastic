@@ -1,8 +1,7 @@
-HEADERS = {
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) SemanticScholarBot (+https://www.semanticscholar.org/crawler)",
-    "Connection": "keep-alive"}
-#PROXY = {"https": "https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225"}
-PROXY = {"https": "https://52.179.18.244:8080"}
+PROXY = "http://service_8798:45f30e69ee@rotating.proxy-spider.com:1500"
+HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
+           "Connection": "keep-alive"
+           }
 
 ES_IP = '51.210.251.250'  # 112.137.142.8 #localhost
 ES_USER = 'default'  # default #user

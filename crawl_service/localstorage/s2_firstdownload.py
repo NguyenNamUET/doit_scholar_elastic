@@ -61,7 +61,7 @@ def download_data(start, end=None):
     paper_sitemaps = paper_sitemaps_list[start:] if end is None else paper_sitemaps_list[start:end]
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         for paper_sitemap in paper_sitemaps:
-            paper_urls = crawl_second_sitemap(paper_sitemap)[:10]
+            paper_urls = crawl_second_sitemap(paper_sitemap)
             if paper_urls is not None:
                 urls_grouper = grouper(paper_urls, 1000)
                 for index, urls_group in enumerate(urls_grouper):
