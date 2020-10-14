@@ -77,14 +77,11 @@ def crawl_second_sitemap(sitemap_url):
                                    error_path="{}/sitemap_{}/sitemap_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
                                    return_content=True, proxy=True)
         all_paper_urls_soup = sitemap_content.find_all("loc")
-        write_to_record(sitemap_url, "{}/sitemap_{}/sitemap_error.txt".format(PAPER_METADATA_PATH,sitemap_id),
-                        by_line=True, is_append=True)
+
         return [sitemap.text for sitemap in all_paper_urls_soup]
     except Exception as e:
         print("Sitemap {} caused error {}".format(sitemap_id, e))
 
 
 if __name__ == '__main__':
-    print(get_pdf_link_and_name(
-        "https://www.semanticscholar.org/paper/Challenges-and-Opportunities-for-Improving-College-Goldrick-Rab/0494a3422778413abca5a53932d8344347c033e3"
-        ,"0001"))
+    print(get_paper_api_v2("0f799014d4f660ab8d3bbbef296dd7d0ee53efe6","0000010"))

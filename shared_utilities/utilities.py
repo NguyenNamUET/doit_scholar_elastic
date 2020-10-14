@@ -17,10 +17,9 @@ def load_url(url, error_path, return_content=False, proxy=False, return_json=Fal
     try:
         if proxy:  ##Do not reveal this proxy
             proxies = {
-                'http': PROXY
+                "http": PROXY
             }
             response = requests.get(url, headers=HEADERS, proxies=proxies)
-
         else:
             response = requests.get(url)
 
@@ -126,3 +125,22 @@ def load_jsonl_from_gz(file_gz_path):
             return obj
     except Exception as e:
         print("load_jsonl_from_gz {} error {}".format(file_gz_path, e))
+
+
+if __name__ == '__main__':
+    import requests
+    #https://lum-customer-hl_26f509b3-zone-static:emgsedqdj28n@zproxy.lum-superproxy.io:22225
+    #curl --proxy zproxy.lum-superproxy.io:22225 --proxy-user lum-customer-hl_26f509b3-zone-static:emgsedqdj28n "http://lumtest.com/myip.json"
+    proxies = {
+        'http': "http://service_8798:45f30e69ee@rotating.proxy-spider.com:1500"
+    }
+
+    # Create the session and set the proxies.
+    s = requests.Session()
+    s.proxies = proxies
+
+    # Make the HTTP request through the session.
+    r = s.get('http://ip-api.com/')
+
+    # Check if the proxy was indeed used (the text should contain the proxy IP).
+    print(r.text)

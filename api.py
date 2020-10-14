@@ -225,10 +225,13 @@ async def getSomeAuthorsForHomepage(size: Optional[int] = 3):
 
 
 @app.get("/s2api/papers/{paperID}")
-async def getpaperByID(paperID: str):
+async def getpaperByID(paperID: str, cstart: Optional[int] = 0, csize: Optional[int] = 5,
+                       rstart: Optional[int] = 0, rsize: Optional[int] = 5):
     result = await get_paper_by_id(es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
-                                   paper_id=paperID)
+                                   paper_id=paperID,
+                                   cstart=cstart, csize=csize,
+                                   rstart=rstart, rsize=rsize)
     return result
 
 

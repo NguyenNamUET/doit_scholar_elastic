@@ -60,7 +60,8 @@ def count_topics(es, index):
     return result['aggregations']['topics']["value"]
 
 
-async def get_paper_by_id(es, index, paper_id):
+async def get_paper_by_id(es, index, paper_id, cstart=0, csize=5, rstart=0, rsize=5):
+    print(cstart, csize, rstart, rsize)
     try:
         ############################ IF FOUND PAPER ON MY ELASTICSEARCH ###################################
         paper = es.get(index=index, id=paper_id)["_source"]
@@ -121,12 +122,12 @@ async def get_paper_by_id(es, index, paper_id):
     if res is not None and paper is not None:
         citations = await asyncio.gather(
             *(get_paper_from_id(es, index, citation["paperId"], citation["isInfluential"])
-              for citation in paper["citations"][:5]))
+              for citation in paper["citations"][cstart:(cstart+csize)]))
         res["citations"] = [c for c in citations if c is not None]
 
         references = await asyncio.gather(
             *(get_paper_from_id(es, index, reference["paperId"], reference["isInfluential"])
-              for reference in paper["references"][:5]))
+              for reference in paper["references"][rstart:(rstart+rsize)]))
         res["references"] = [r for r in references if r is not None]
         return res
 

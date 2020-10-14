@@ -1,4 +1,4 @@
-PROXY = "http://service_8798:45f30e69ee@rotating.proxy-spider.com:1500"
+PROXY = "http://service_8798:45f30e69ee@rotating.proxy-spider.com:1500/"
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:79.0) Gecko/20100101 Firefox/79.0",
            "Connection": "keep-alive"
            }

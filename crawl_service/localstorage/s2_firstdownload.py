@@ -11,8 +11,8 @@ import re
 def downloader(paper_url, paper_sitemap):
     paper_id = extract_url_id(paper_url)
     sitemap_id = re.findall("\d+", paper_sitemap)[0]
-    s2paper = get_paper_api_v2(paper_id, sitemap_id)
     try:
+        s2paper = get_paper_api_v2(paper_id, sitemap_id)
         paper_document = {
             "paperId": s2paper["paperId"],
             "corpusId": s2paper["corpusId"],
@@ -50,10 +50,10 @@ def downloader(paper_url, paper_sitemap):
                          "name": author["name"]} for author in s2paper["authors"]]
         }
 
-        store_gz(paper_document, "{}/sitemap_{}/paper_{}.json.gz".format(PAPER_METADATA_PATH, sitemap_id, paper_id))
+        store_gz(paper_document, f"{PAPER_METADATA_PATH}/sitemap_{sitemap_id}/paper_{paper_id}.json.gz")
         return paper_id
     except Exception as e:
-        print("paper {} DOWNLOAD error: {}".format(paper_id, e))
+        print(f"paper {paper_id} DOWNLOAD error: {e}")
 
 
 def download_data(start, end=None):
@@ -63,14 +63,14 @@ def download_data(start, end=None):
         for paper_sitemap in paper_sitemaps:
             paper_urls = crawl_second_sitemap(paper_sitemap)
             if paper_urls is not None:
-                urls_grouper = grouper(paper_urls, 1000)
+                urls_grouper = grouper(paper_urls, 100)
                 for index, urls_group in enumerate(urls_grouper):
                     future_to_url = {executor.submit(downloader, paper_url,paper_sitemap): paper_url for paper_url in urls_group if
                                              paper_url is not None}
                     # Just ignore this
                     pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")
                     for future in pbar:
-                        pbar.set_description("Paper_sitemap_{}_group_({}/30)".format(re.findall("\d+", paper_sitemap)[0],index))
+                        pbar.set_description("Paper_sitemap_{}_group_({}/310)".format(re.findall("\d+", paper_sitemap)[0],index))
                         paper_url = future_to_url[future]
                         try:
                             paper_id = future.result()
@@ -79,4 +79,4 @@ def download_data(start, end=None):
 
 
 if __name__ == '__main__':
-    download_data(0, 10)
+    download_data(10)
