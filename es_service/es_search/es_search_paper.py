@@ -1,7 +1,7 @@
 from elasticsearch import NotFoundError
 
 from es_service.es_search.es_search_helpers import get_paper_default_source, get_paper_default_sort, \
-    get_paper_aggregation_of_fields_of_study, get_paper_aggregation_of_authors, \
+    get_paper_aggregation_of_fields_of_study, get_paper_aggregation_of_authors, get_paper_aggregation_by_year, \
     get_paper_aggregation_of_venues, get_citations_aggregation_by_year, get_citations_aggregation_by_year__S2, \
     get_paper_from_id
 
@@ -61,7 +61,6 @@ def count_topics(es, index):
 
 
 async def get_paper_by_id(es, index, paper_id, cstart=0, csize=5, rstart=0, rsize=5):
-    print(cstart, csize, rstart, rsize)
     try:
         ############################ IF FOUND PAPER ON MY ELASTICSEARCH ###################################
         paper = es.get(index=index, id=paper_id)["_source"]
@@ -73,7 +72,7 @@ async def get_paper_by_id(es, index, paper_id, cstart=0, csize=5, rstart=0, rsiz
                "abstract": paper["abstract"],
                "venue": paper["venue"],
                "year": paper["year"],
-               "pdf_url": paper["pdf_url"] if re.search(".pdf", paper["pdf_url"]) is not None else "",
+               "pdf_url": paper["pdf_url"],
                "citationVelocity": paper["citationVelocity"],
                "influentialCitationCount": paper["influentialCitationCount"],
                "citations_count": paper["citations_count"],
@@ -177,12 +176,15 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
                           return_top_author=False, top_author_size=10,
                           return_fos_aggs=False,
                           return_venue_aggs=False,
+                          return_year_aggs=False,
                           deep_pagination=False, last_paper_id=None):
     if source is None:
         source = get_paper_default_source()
 
     if sort_by is None:
-        sort_by = get_paper_default_sort()
+        sort_by = get_paper_default_sort(sort_by="score")
+    else:
+        sort_by = get_paper_default_sort(sort_by=sort_by)
 
     query = {"from": start,
              "size": size,
@@ -203,7 +205,23 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
     if return_venue_aggs:
         query["aggs"]["venue_count"] = get_paper_aggregation_of_venues()
 
+    if return_year_aggs:
+        query["aggs"]["year_count"] = get_paper_aggregation_by_year()
+
     print("common_query__builder: ", query)
+    return query
+
+
+def search_paper_year__builder(from_year=0, end_year=2020):
+    query = {
+          "range": {
+            "year": {
+              "gte": from_year,
+              "lte": end_year
+            }
+          }
+        }
+    print("search_paper_year__builder: ", query)
     return query
 
 
@@ -385,6 +403,7 @@ def search_by_title(es, index, search_content,
                     start=0, size=10, source=None, sort_by=None,
                     return_fos_aggs=False,
                     return_venue_aggs=False,
+                    from_year=None, end_year=None, return_year_aggs=False,
                     deep_pagination=False, last_paper_id=None,
                     return_top_author=False, top_author_size=10):
     common_query = common_query__builder(start=start, size=size, source=source,
@@ -393,6 +412,7 @@ def search_by_title(es, index, search_content,
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
                                          return_venue_aggs=return_venue_aggs,
+                                         return_year_aggs=return_year_aggs,
                                          deep_pagination=deep_pagination, last_paper_id=last_paper_id)
 
     title_query = search_paper_title__builder(search_content=search_content)
@@ -402,6 +422,10 @@ def search_by_title(es, index, search_content,
                        "should": title_query}
                   }
              }
+
+    if from_year is not None and end_year is not None:
+        year_query = search_paper_year__builder(from_year=from_year, end_year=end_year)
+        query["query"]["bool"]["must"].append(year_query)
 
     if venues is not None:
         venues_query = search_paper_by_venues__builder(venues=venues, venues_isShould=venues_isShould)
@@ -438,11 +462,13 @@ def search_by_title(es, index, search_content,
 def search_by_abstract(es, index, search_content,
                        start=0, size=10, source=None, sort_by=None,
                        return_fos_aggs=False,
+                       return_year_aggs=False,
                        deep_pagination=False, last_paper_id=None,
                        return_top_author=False, top_author_size=10):
     common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
+                                         return_year_aggs=return_year_aggs,
                                          deep_pagination=deep_pagination, last_paper_id=last_paper_id)
     abstract_query = search_paper_abstract__builder(search_content=search_content)
     query = {"query": abstract_query}
@@ -501,7 +527,7 @@ def search_by_venue(es, index,
     if result["hits"]["total"]["value"] == 0:
         return {}
 
-    return result["hits"]["hits"]
+    return result
 
 
 def search_by_topics(es, index,
@@ -529,8 +555,11 @@ def search_by_topics(es, index,
     return result
 
 
-def search_on_typing(es, index, search_content, source=None, size=10):
-    common_query = common_query__builder(source=source,
+def search_on_typing(es, index, search_content,
+                     authors=None,
+                     venues=None,
+                     size=10):
+    common_query = common_query__builder(source=["paperId", "title", "citations_count"],
                                          sort_by=[{"citations_count": "desc"}],
                                          size=size)
     title_query = search_paper_title__builder(search_content=search_content)
@@ -541,6 +570,27 @@ def search_on_typing(es, index, search_content, source=None, size=10):
                   }
              }
     query.update(common_query)
+    if authors is not None:
+        query["query"]["bool"]["must"].append(
+            {
+                "nested": {
+                    "path": "authors",
+                    "query": {
+                        "match": {
+                            "authors.authorId.keyword": authors[0] #this is id of author
+                        }
+                    }
+                }
+            })
+    elif venues is not None:
+        query["query"]["bool"]["must"].append(
+            {
+                "match": {
+                    "venue.keyword": {
+                        "query": venues[0]
+                    }
+                }
+            })
     print("search_on_typing query: ", query)
     result = es.search(index=index, body=query)
     if result["hits"]["total"]["value"] == 0:

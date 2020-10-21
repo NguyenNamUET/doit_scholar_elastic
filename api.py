@@ -51,6 +51,10 @@ class paperItem(BaseModel):
     return_fos_aggs: Optional[bool] = False
     # Venues aggs
     return_venue_aggs: Optional[bool] = False
+    # Years aggs
+    from_year: Optional[int] = 0
+    end_year: Optional[int] = 2020
+    return_year_aggs: Optional[bool] = False
     # Pagination
     deep_pagination: Optional[bool] = False
     last_paper_id: Optional[int] = 0
@@ -130,6 +134,7 @@ def searchPaperTitle(query: paperItem):
                              start=query.start, size=query.size, source=query.source, sort_by=query.sort_by,
                              return_fos_aggs=query.return_fos_aggs,
                              return_venue_aggs=query.return_venue_aggs,
+                             from_year=query.from_year, end_year=query.end_year, return_year_aggs=query.return_year_aggs,
                              deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                              return_top_author=query.return_top_author, top_author_size=query.top_author_size)
 
@@ -142,6 +147,7 @@ def searchPaperAbstract(query: paperItem):
                                 search_content=query.search_content,
                                 start=query.start, size=query.size, source=query.source, sort_by=query.sort_by,
                                 return_fos_aggs=query.return_fos_aggs,
+                                return_year_aggs=query.return_year_aggs,
                                 deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                                 return_top_author=query.return_top_author, top_author_size=query.top_author_size)
 
@@ -193,7 +199,9 @@ def getSomePapersForHomepage(size: Optional[int] = 3):
 def searchOnTyping(query: paperItem):
     result = search_on_typing(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                               search_content=query.search_content,
-                              source=query.source, size=query.size)
+                              authors=query.authors,
+                              venues=query.venues,
+                              size=query.size)
 
     return result
 
@@ -236,10 +244,10 @@ async def getpaperByID(paperID: str, cstart: Optional[int] = 0, csize: Optional[
 
 
 @app.get("/s2api/authors/{author_id}")
-async def getAuthorById(author_id: str):
+async def getAuthorById(author_id: str, start: Optional[int] = 0, size: Optional[int] = 5, sort_by: Optional[str] = "score"):
     result = await get_author_by_id(es=elasticsearch_connection,
                                     index=PAPER_DOCUMENT_INDEX,
-                                    author_id=author_id)
+                                    author_id=author_id, start=start, size=size, sort_by=sort_by)
     return result
 
 

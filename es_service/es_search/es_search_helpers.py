@@ -50,8 +50,16 @@ def get_paper_default_source():
             "pdf_url", "venue", "year"]
 
 
-def get_paper_default_sort():
-    return [{"_score": "desc"}, {"paperId.keyword": "asc"}]
+def get_paper_default_sort(sort_by="score"):
+    if sort_by == "score":
+        return [{"_score": "desc"}, {"paperId.keyword": "asc"}]
+    elif sort_by == "year":
+        return [{"year": "desc"}]
+    elif sort_by == "citations_count":
+        return [{"citations_count": "desc"}]
+    else:
+        return sort_by
+
 
 
 def get_paper_aggregation_of_fields_of_study(size=10):
@@ -68,6 +76,18 @@ def get_paper_aggregation_of_venues(size=10):
         "terms": {
             "field": "venue.keyword",
             "size": size
+        }
+    }
+
+
+def get_paper_aggregation_by_year(size=10000):
+    return {
+        "terms": {
+            "field": "year",
+            "size": size,
+            "order": {
+              "_key": "asc"
+            }
         }
     }
 
@@ -110,13 +130,6 @@ def get_citations_aggregation_by_year__S2(citations, size):
 
     return cit_aggs
 
-
-def get_author_default_source():
-    return ["authorId", "aliases", "name", "influentialCitationCount", "totalPapers", "papers", "totalPapers"]
-
-
-def get_author_default_sort():
-    return {"_score": "desc"}
 
 ############################ MATH FUNCTION ##################################
 def calculate_paper_hindex(citations):

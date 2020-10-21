@@ -1,5 +1,5 @@
 from es_service.es_constant.constants import HEADERS, PROXY
-from es_service.es_search.es_search_helpers import get_paper_aggregation_of_authors, \
+from es_service.es_search.es_search_helpers import get_paper_default_sort, get_paper_aggregation_of_authors, \
     calculate_paper_hindex, get_paper_from_id, sum
 
 import requests
@@ -8,6 +8,8 @@ import asyncio
 PROXIES = {
     'http': PROXY
 }
+
+
 def count_authors(es, index):
     query = {
         "size": 0,
@@ -65,7 +67,8 @@ def get_some_papers(es, index, author_id, start=5, size=5):
                  "year": paper["year"]} for paper in json_res["papers"][start:(start + size)]]
 
 
-async def get_author_by_id(es, index, author_id, shorted=False):
+async def get_author_by_id(es, index, author_id, start=0, size=5, sort_by="score",
+                           shorted=False):
     query = {
         "query": {
             "nested": {
@@ -77,6 +80,8 @@ async def get_author_by_id(es, index, author_id, shorted=False):
                 }
             }
         },
+        "from": start,
+        "size": size,
         "_source": ["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
                     "title", "topics", "citations_count", "references_count", "authors_count",
                     "pdf_url", "venue", "year"],
@@ -96,7 +101,8 @@ async def get_author_by_id(es, index, author_id, shorted=False):
                     "field": "paperId.keyword"
                 }
             }
-        }
+        },
+        "sort": get_paper_default_sort(sort_by=sort_by)
     }
     res = es.search(index=index, body=query)
 
@@ -152,7 +158,7 @@ async def get_author_by_id(es, index, author_id, shorted=False):
                 "name": json_res["name"],
                 "papers": [{"paperId": paper["paperId"],
                             "title": paper["title"],
-                            "year": paper["year"]} for paper in json_res["papers"][:5]]
+                            "year": paper["year"]} for paper in json_res["papers"][:5] if paper is not None]
             }
         return author
 
