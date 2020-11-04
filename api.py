@@ -37,7 +37,7 @@ app.add_middleware(
 # Run command: uvicorn api:app --reload --workers=5
 
 class paperItem(BaseModel):
-    search_content: Optional[str] = "neural"
+    search_content: Optional[str] = Query(None)
     authors: Optional[List[str]] = Query(None)
     topics: Optional[List[str]] = Query(None)
     venues: Optional[List[str]] = Query(None)
@@ -70,11 +70,30 @@ class paperItem(BaseModel):
 
 class authorItem(BaseModel):
     author_name: Optional[str] = ""
+    search_content: Optional[str] = Query(None)
+    authors: Optional[List[str]] = Query(None)
+    venues: Optional[List[str]] = Query(None)
+    fields_of_study: Optional[List[str]] = Query(None)
+    # Condion for fields match (False=must, True=should)
+    fos_is_should: Optional[bool] = False
+    author_is_should: Optional[bool] = False
+    venues_is_should: Optional[bool] = False
     # Optional parameters
     start: Optional[int] = 0
     size: Optional[int] = 10
     source: Optional[List[str]] = Query(None)
     sort_by: Optional[str] = Query(None)
+    # Years aggs
+    from_year: Optional[int] = 0
+    end_year: Optional[int] = 2020
+    return_year_aggs: Optional[bool] = False
+    # Top author aggs
+    return_top_author: Optional[bool] = False
+    top_author_size: Optional[int] = 10
+    # Fields of study aggs
+    return_fos_aggs: Optional[bool] = False
+    # Venues aggs
+    return_venue_aggs: Optional[bool] = False
 
 
 ################################# All papers api ###########################
@@ -182,6 +201,14 @@ def searchPaperByTopics(query: paperItem):
 def searchPaperByVenue(query: paperItem):
     result = search_by_venue(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                              venue=query.venues,
+                             search_content=query.search_content,
+                             authors=query.authors, author_isShould=query.author_is_should,
+                             return_top_author=query.return_top_author, top_author_size=query.top_author_size,
+                             fields_of_study=query.fields_of_study, fos_isShould=query.fos_is_should,
+                             return_fos_aggs=query.return_fos_aggs,
+                             venues=query.venues, venues_isShould=query.venues_is_should,
+                             return_venue_aggs=query.return_venue_aggs,
+                             from_year=query.from_year, end_year=query.end_year, return_year_aggs=query.return_year_aggs,
                              start=query.start, size=query.size, source=query.source, sort_by=query.sort_by)
 
     return result
@@ -243,11 +270,18 @@ async def getpaperByID(paperID: str, cstart: Optional[int] = 0, csize: Optional[
     return result
 
 
-@app.get("/s2api/authors/{author_id}")
-async def getAuthorById(author_id: str, start: Optional[int] = 0, size: Optional[int] = 5, sort_by: Optional[str] = "score"):
+@app.post("/s2api/authors/{author_id}")
+async def getAuthorById(author_id: str, query: authorItem):
     result = await get_author_by_id(es=elasticsearch_connection,
                                     index=PAPER_DOCUMENT_INDEX,
-                                    author_id=author_id, start=start, size=size, sort_by=sort_by)
+                                    author_id=author_id, search_content=query.search_content,
+                                    start=query.start, size=query.size,
+                                    sort_by=query.sort_by,
+                                    authors=query.authors, author_isShould=query.author_is_should, return_top_author=query.return_top_author, top_author_size=query.top_author_size,
+                                    fields_of_study=query.fields_of_study, fos_isShould=query.fos_is_should, return_fos_aggs=query.return_fos_aggs,
+                                    venues=query.venues, venues_isShould=query.venues_is_should, return_venue_aggs=query.return_venue_aggs,
+                                    from_year=query.from_year, end_year=query.end_year, return_year_aggs=query.return_year_aggs
+                                    )
     return result
 
 
