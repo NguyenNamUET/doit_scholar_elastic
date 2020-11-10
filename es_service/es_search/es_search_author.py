@@ -2,8 +2,9 @@ from es_service.es_constant.constants import HEADERS, PROXY
 from es_service.es_search.es_search_helpers import common_query__builder, \
     get_paper_aggregation_of_authors, \
     search_paper_year__builder, search_paper_by_fos__builder, search_by_author__builder, \
-    search_paper_by_venues__builder, search_paper_title__builder,\
-    calculate_paper_hindex, get_paper_from_id, sum
+    search_paper_by_venues__builder, search_paper_title__builder, \
+    calculate_paper_hindex, get_paper_from_id, sum, get_citations_aggregation_by_year, \
+    get_citations_aggregation_by_year__S2
 
 import requests
 import asyncio
@@ -77,7 +78,7 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
                            venues=None, venues_isShould=True, return_venue_aggs=False,
                            from_year=None, end_year=None, return_year_aggs=False):
     common_query = common_query__builder(start=start, size=size,
-                                         source=["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
+                                         source=["paperId", "doi", "abstract", "authors", "fieldsOfStudy", "citations",
                                                  "title", "topics", "citations_count", "references_count",
                                                  "authors_count", "pdf_url", "venue", "year"],
                                          sort_by=sort_by,
@@ -153,7 +154,14 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
 
     if res["hits"]["total"]["value"] > 0:
         print(f"FOUND AUTHOR {author_id} ON ELASTIC")
-        print("GET_AUTHOR_BY_ID result", res)
+        year_list = []
+        for paper in res["hits"]["hits"]:
+            for cit in paper["_source"]["citations"]:
+                year_list.append(cit.get("year", 0))
+        print(year_list)
+        res["aggregations"]["citations_chart"] = get_citations_aggregation_by_year__S2(year_list, size=200)
+        #Remove citaions key from paper
+        res["hits"]["hits"] = [{k: v for k, v in p.items() if k != "citations"} for p in res["hits"]["hits"]]
         res["aggregations"]["totalPapers"] = res["hits"]["total"]["value"]
         res["authorId"] = author_id
         res["name"] = [p["name"] for p in res["hits"]["hits"][0]["_source"]["authors"] if p["authorId"] == author_id][0]
@@ -173,12 +181,14 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
                 "hits": {
                     "hits": [{"paperId": paper["paperId"],
                             "title": paper["title"],
-                            "year": paper["year"]} for paper in json_res["papers"][:5] if paper is not None]
+                            "year": paper["year"]} for paper in json_res["papers"][:size] if paper is not None]
                 },
                 "aggregations": {
                     "influentialCitationCount": {"value": json_res["influentialCitationCount"]},
                     "totalPapers": {"value": len(json_res["papers"])},
-                    "citationsCount": {"value": sum([len(p["citations"]) for p in papers])}
+                    "citationsCount": {"value": sum([len(p["citations"]) for p in papers])},
+                    "citations_chart": get_citations_aggregation_by_year__S2([cit.get("year",0) for cit in paper["citations"]],
+                                                                             size=200)
                 }
             }
         res["authorId"] = author_id

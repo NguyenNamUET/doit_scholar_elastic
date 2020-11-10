@@ -87,7 +87,10 @@ async def get_paper_by_id(es, index, paper_id, cstart=0, csize=5, rstart=0, rsiz
                "fieldsOfStudy": paper["fieldsOfStudy"],
                "topics": paper["topics"],
                "citations": [],
-               "references": []
+               "references": [],
+               "citations_chart": get_citations_aggregation_by_year__S2(
+                   [cit.get("year",0) for cit in paper["citations"]],
+                   size=200)
                }
 
     except NotFoundError:
@@ -118,6 +121,8 @@ async def get_paper_by_id(es, index, paper_id, cstart=0, csize=5, rstart=0, rsiz
                               for topic in paper["topics"]],
                    "citations": [],
                    "references": [],
+                   "citations_chart": get_citations_aggregation_by_year__S2([cit.get("year",0) for cit in paper["citations"]],
+                                                                            size=200)
                    }
         except Exception as e:
             res, paper = None, None
@@ -146,18 +151,20 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
                 "paperId.keyword": paper_id
             }
         },
-        "_source": ["citations"],
+        "_source": ["citations.year"],
         "aggs": {
             "citation_year_count": get_citations_aggregation_by_year(size=citations_year_range)
         }
     }
+    print("generate_citations_graph", query)
     query_res = es.search(index=index, body=query)
 
     # IF FOUND PAPER ON MY ELASTICSEARCH
     if query_res['hits']['total']['value'] > 0:
         print(f"FOUND {paper_id} ON MY API")
 
-        # res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
+        #BUG ELASTIC AGGS TERM
+        #res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
         res = {"citations_chart": get_citations_aggregation_by_year__S2(
             query_res["hits"]["hits"][0]["_source"]["citations"],
             size=citations_year_range)}
@@ -511,9 +518,6 @@ def get_some_papers_for_homepage(es, index, size=3):
 
 def generate_FOS_donut_graph(es, index, size=10):
     query = {
-        "query": {
-            "match_all": {}
-        },
         "size": 0,
         "aggs": {
             "fos_aggs": get_paper_aggregation_of_fields_of_study(size=size)

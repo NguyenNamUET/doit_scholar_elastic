@@ -115,7 +115,7 @@ def generateFOSdonutGraph(size: Optional[int] = 10):
 
 
 @app.get("/s2api/papers/venuesGraph")
-def generateVenuesGraph(size: Optional[int] = 1000):
+def generateVenuesGraph(size: Optional[int] = 30):
     result = generate_venues_graph(es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
                                    size=size)

@@ -200,6 +200,8 @@ def search_paper_by_venues__builder(venues, venues_isShould=True):
             }
         }
         for venue in venues:
+            if venue == "Anonymous":
+                venue = ""
             query["bool"]["should"].append({
                 "match": {
                     "venue.keyword": {
@@ -214,6 +216,8 @@ def search_paper_by_venues__builder(venues, venues_isShould=True):
             }
         }
         for venue in venues:
+            if venue == "Anonymous":
+                venue = ""
             query["bool"]["must"].append({
                 "match": {
                     "venue.keyword": {
@@ -348,7 +352,7 @@ def get_citations_aggregation_by_year(size):
 
 
 def get_citations_aggregation_by_year__S2(citations, size):
-    cit_counter = Counter(cit['year'] for cit in citations if cit['year'] is not None)
+    cit_counter = Counter(cit for cit in citations if cit is not None)
     cit_aggs = {year:count for year, count in sorted(cit_counter.most_common(size))}
 
     return cit_aggs
