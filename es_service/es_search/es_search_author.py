@@ -187,7 +187,7 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
                     "influentialCitationCount": {"value": json_res["influentialCitationCount"]},
                     "totalPapers": {"value": len(json_res["papers"])},
                     "citationsCount": {"value": sum([len(p["citations"]) for p in papers])},
-                    "citations_chart": get_citations_aggregation_by_year__S2([cit.get("year",0) for cit in paper["citations"]],
+                    "citations_chart": get_citations_aggregation_by_year__S2([cit.get("year",0) for cit in papers["citations"]],
                                                                              size=200)
                 }
             }
