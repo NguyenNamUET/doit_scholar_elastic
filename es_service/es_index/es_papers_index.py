@@ -12,11 +12,6 @@ from tqdm import tqdm
 def index_paper_document(path):
     try:
         paper_document = load_jsonl_from_gz(PAPER_METADATA_PATH+"/"+path)
-        if paper_document["year"]=="":
-            paper_document["year"] = 0
-        paper_document["citations_count"] = len(paper_document["citations"])
-        paper_document["references_count"] = len(paper_document["references"])
-        paper_document["authors_count"] = len(paper_document["authors"])
 
         #Calculate h-index of each author
         insert_doc(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,

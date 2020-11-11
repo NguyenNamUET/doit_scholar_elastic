@@ -7,6 +7,7 @@ PROXIES = {
     'http': PROXY
 }
 
+
 async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citations=False):
     try:
         paper = es.get(index=index, id=paper_id)
@@ -25,7 +26,7 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citati
                        "abstract": paper["abstract"],
                        "fieldsOfStudy": paper["fieldsOfStudy"],
                        "topics": [{"topicId": p["topicId"], "topic": p["topic"]} for p in
-                                   paper["topics"]],
+                                  paper["topics"]],
                        "authors": [{"authorId": a["authorId"], "name": a["name"]} for a in
                                    paper["authors"]],
                        "citations_count": len(paper["citations"]),
@@ -86,13 +87,13 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
 
 def search_paper_year__builder(from_year=0, end_year=2020):
     query = {
-          "range": {
+        "range": {
             "year": {
-              "gte": from_year,
-              "lte": end_year
+                "gte": from_year,
+                "lte": end_year
             }
-          }
         }
+    }
     print("SEARCH_PAPER_YEAR__BUILDER: ", query)
     return query
 
@@ -288,6 +289,31 @@ def get_paper_default_sort(sort_by="score"):
         return sort_by
 
 
+def get_paper_aggregation_of_topics_and_year(topics_size=10, year_size=10):
+    return {
+        "terms": {
+            "field": "topics.topic.keyword",
+            "size": topics_size
+        },
+        "aggs": {
+            "years": {
+                "terms": {
+                    "field": "year",
+                    "size": year_size
+                }
+            }
+        }
+    }
+
+
+def get_paper_aggregation_of_topics(size=10):
+    return {
+        "terms": {
+            "field": "topics.topicId.keyword",
+            "size": size
+        }
+    }
+
 
 def get_paper_aggregation_of_fields_of_study(size=10):
     return {
@@ -313,7 +339,7 @@ def get_paper_aggregation_by_year(size=10000):
             "field": "year",
             "size": size,
             "order": {
-              "_key": "asc"
+                "_key": "asc"
             }
         }
     }
@@ -353,7 +379,7 @@ def get_citations_aggregation_by_year(size):
 
 def get_citations_aggregation_by_year__S2(citations, size):
     cit_counter = Counter(cit for cit in citations if cit is not None)
-    cit_aggs = {year:count for year, count in sorted(cit_counter.most_common(size))}
+    cit_aggs = {year: count for year, count in sorted(cit_counter.most_common(size))}
 
     return cit_aggs
 
@@ -374,6 +400,7 @@ def calculate_paper_hindex(citations):
             return result
 
     return 0
+
 
 def sum(items):
     sum = 0

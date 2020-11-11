@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from es_service.es_helpers.es_connection import elasticsearch_connection
 from es_service.es_constant.constants import PAPER_DOCUMENT_INDEX
 
-from es_service.es_search.es_search_paper import get_paper_by_id, count_papers, count_fields_of_study, \
+from es_service.es_search.es_search_paper import get_paper_by_id, get_count_stats, count_papers, count_fields_of_study, \
     count_topics, get_some_citations, get_some_references
-from es_service.es_search.es_search_paper import generate_citations_graph, generate_FOS_donut_graph, \
-    generate_venues_graph
+from es_service.es_search.es_search_paper import generate_graphs, generate_citations_graph, generate_FOS_graph, \
+    generate_venues_graph, generate_topics_graph
 from es_service.es_search.es_search_paper import search_by_title, search_by_abstract, search_by_fields_of_study, \
     search_by_topics, search_on_typing, search_by_venue
 from es_service.es_search.es_search_paper import get_some_papers_for_homepage
@@ -97,6 +97,21 @@ class authorItem(BaseModel):
 
 
 ################################# All papers api ###########################
+@app.get("/s2api/papers/generateGraphs")
+def generateGraphs(citations_graph: Optional[bool] = False, paper_id: Optional[str] = Query(None),
+                   citations_year_range: Optional[int] = 200,
+                   fos_graph: Optional[bool] = False, venues_graph: Optional[bool] = False, size: Optional[int] = 10,
+                   topics_graph: Optional[bool] = False, topics_size: Optional[int] = 10,
+                   year_size: Optional[int] = 10):
+    result = generate_graphs(es=elasticsearch_connection,
+                             index=PAPER_DOCUMENT_INDEX,
+                             citations_graph=citations_graph, paper_id=paper_id,
+                             citations_year_range=citations_year_range,
+                             fos_graph=fos_graph, venues_graph=venues_graph, size=size,
+                             topics_graph=topics_graph, topics_size=topics_size, year_size=year_size)
+    return result
+
+
 @app.get("/s2api/papers/{paperID}/citationsGraph")
 def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 100):
     result = generate_citations_graph(es=elasticsearch_connection,
@@ -108,9 +123,9 @@ def generateCitationsGraph(paperID: str, citations_year_range: Optional[int] = 1
 
 @app.get("/s2api/papers/fosGraph")
 def generateFOSdonutGraph(size: Optional[int] = 10):
-    result = generate_FOS_donut_graph(es=elasticsearch_connection,
-                                      index=PAPER_DOCUMENT_INDEX,
-                                      size=size)
+    result = generate_FOS_graph(es=elasticsearch_connection,
+                                index=PAPER_DOCUMENT_INDEX,
+                                size=size)
     return result
 
 
@@ -119,6 +134,29 @@ def generateVenuesGraph(size: Optional[int] = 30):
     result = generate_venues_graph(es=elasticsearch_connection,
                                    index=PAPER_DOCUMENT_INDEX,
                                    size=size)
+    return result
+
+
+@app.get("/s2api/papers/topicsGraph")
+def generateTopicsGraph(topics_size: Optional[int] = 10, year_size: Optional[int] = 10):
+    result = generate_topics_graph(es=elasticsearch_connection,
+                                   index=PAPER_DOCUMENT_INDEX,
+                                   topics_size=topics_size,
+                                   year_size=year_size)
+    return result
+
+
+@app.get("/s2api/papers/statsCount")
+def statsCount(is_papers_count: Optional[bool] = False,
+               is_authors_count: Optional[bool] = False,
+               is_fos_count: Optional[bool] = False,
+               is_topics_count: Optional[bool] = False,):
+    result = get_count_stats(es=elasticsearch_connection,
+                             index=PAPER_DOCUMENT_INDEX,
+                             is_papers_count=is_papers_count,
+                             is_authors_count=is_authors_count,
+                             is_fos_count=is_fos_count,
+                             is_topics_count=is_topics_count)
     return result
 
 
@@ -153,7 +191,8 @@ def searchPaperTitle(query: paperItem):
                              start=query.start, size=query.size, source=query.source, sort_by=query.sort_by,
                              return_fos_aggs=query.return_fos_aggs,
                              return_venue_aggs=query.return_venue_aggs,
-                             from_year=query.from_year, end_year=query.end_year, return_year_aggs=query.return_year_aggs,
+                             from_year=query.from_year, end_year=query.end_year,
+                             return_year_aggs=query.return_year_aggs,
                              deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                              return_top_author=query.return_top_author, top_author_size=query.top_author_size)
 
@@ -208,16 +247,23 @@ def searchPaperByVenue(query: paperItem):
                              return_fos_aggs=query.return_fos_aggs,
                              venues=query.venues, venues_isShould=query.venues_is_should,
                              return_venue_aggs=query.return_venue_aggs,
-                             from_year=query.from_year, end_year=query.end_year, return_year_aggs=query.return_year_aggs,
+                             from_year=query.from_year, end_year=query.end_year,
+                             return_year_aggs=query.return_year_aggs,
                              start=query.start, size=query.size, source=query.source, sort_by=query.sort_by)
 
     return result
 
 
 @app.get("/s2api/papers/homepagePapers")
-def getSomePapersForHomepage(size: Optional[int] = 3):
+def getSomePapersForHomepage(size: Optional[int] = 3,
+                             order_by_citations_count: Optional[bool] = False,
+                             order_by_year: Optional[bool] = False,
+                             order_by_topics__year: Optional[str] = Query(None), topics_size: Optional[int] = 10):
     result = get_some_papers_for_homepage(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
-                                          size=size)
+                                          size=size,
+                                          order_by_citations_count=order_by_citations_count,
+                                          order_by_year=order_by_year,
+                                          order_by_topics__year=order_by_topics__year, topics_size=topics_size)
 
     return result
 
@@ -277,10 +323,14 @@ async def getAuthorById(author_id: str, query: authorItem):
                                     author_id=author_id, search_content=query.search_content,
                                     start=query.start, size=query.size,
                                     sort_by=query.sort_by,
-                                    authors=query.authors, author_isShould=query.author_is_should, return_top_author=query.return_top_author, top_author_size=query.top_author_size,
-                                    fields_of_study=query.fields_of_study, fos_isShould=query.fos_is_should, return_fos_aggs=query.return_fos_aggs,
-                                    venues=query.venues, venues_isShould=query.venues_is_should, return_venue_aggs=query.return_venue_aggs,
-                                    from_year=query.from_year, end_year=query.end_year, return_year_aggs=query.return_year_aggs
+                                    authors=query.authors, author_isShould=query.author_is_should,
+                                    return_top_author=query.return_top_author, top_author_size=query.top_author_size,
+                                    fields_of_study=query.fields_of_study, fos_isShould=query.fos_is_should,
+                                    return_fos_aggs=query.return_fos_aggs,
+                                    venues=query.venues, venues_isShould=query.venues_is_should,
+                                    return_venue_aggs=query.return_venue_aggs,
+                                    from_year=query.from_year, end_year=query.end_year,
+                                    return_year_aggs=query.return_year_aggs
                                     )
     return result
 

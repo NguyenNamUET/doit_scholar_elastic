@@ -13,13 +13,14 @@ def downloader(paper_url, paper_sitemap):
     sitemap_id = re.findall("\d+", paper_sitemap)[0]
     try:
         s2paper = get_paper_api_v2(paper_id, sitemap_id)
+
         paper_document = {
             "paperId": s2paper["paperId"],
             "corpusId": s2paper["corpusId"],
             "title": s2paper["title"],
             "abstract": s2paper["abstract"],
             "venue": s2paper["venue"],
-            "year": s2paper["year"],
+            "year": s2paper["year"] if s2paper["year"]=="" else 0,
             "citationVelocity": s2paper["citationVelocity"],
             "doi": s2paper["doi"],
             "influentialCitationCount": s2paper["influentialCitationCount"],
@@ -37,6 +38,7 @@ def downloader(paper_url, paper_sitemap):
                            "doi": citation["doi"]
                            }
                           for citation in s2paper["citations"]],
+            "citations_count": len(s2paper["citations"]),
             "references": [{"paperId": reference["paperId"],
                            "isInfluential": reference["isInfluential"],
                            "intent": reference["intent"],
@@ -46,8 +48,10 @@ def downloader(paper_url, paper_sitemap):
                            "doi": reference["doi"]
                            }
                            for reference in s2paper["references"]],
+            "references_count": len(s2paper["references"]),
             "authors": [{"authorId": author["authorId"],
-                         "name": author["name"]} for author in s2paper["authors"]]
+                         "name": author["name"]} for author in s2paper["authors"]],
+            "authors_count": len(s2paper["authors"])
         }
 
         store_gz(paper_document, f"{PAPER_METADATA_PATH}/sitemap_{sitemap_id}/paper_{paper_id}.json.gz")
@@ -77,6 +81,3 @@ def download_data(start, end=None):
                         except Exception as exc:
                             print('%r generated an exception: %s' % (paper_url, exc))
 
-
-if __name__ == '__main__':
-    download_data(10)
