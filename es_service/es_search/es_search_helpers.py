@@ -19,7 +19,7 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citati
                 response = await client.get("https://api.semanticscholar.org/v1/paper/{}".format(paper_id),
                                             headers=HEADERS)
                 paper = response.json()
-
+                print("s2 paper", paper)
                 res = {"paperId": paper["paperId"],
                        "doi": paper["doi"],
                        "title": paper["title"],
@@ -43,6 +43,30 @@ async def get_paper_from_id(es, index, paper_id, isInfluential=None, with_citati
         except Exception as e:
             print(f"paper {paper_id} failed to get {e}")
             return None
+
+
+def rebuild_name_id_aggs(aggs):
+    new_aggs = aggs.copy()
+    if "author_aggs" in aggs:
+        new_authors = []
+        for author in aggs["author_aggs"]["buckets"]:
+            new_authors.append({
+                "name": author["key"].split("___")[0],
+                "id": author["key"].split("___")[1],
+                "doc_count": author["doc_count"]
+            })
+        new_aggs["author_aggs"]["buckets"] = new_authors
+    ##From topic by year graph
+    if "topic_count" in aggs:
+        new_aggs["topic_count"]["buckets"] = []
+        for author in aggs["topic_count"]["buckets"]:
+            new_aggs["topic_count"]["buckets"].append({
+                "name": author["key"].split("___")[0],
+                "id": author["key"].split("___")[1],
+                "doc_count": author["doc_count"]
+            })
+
+    return new_aggs
 
 
 def common_query__builder(start=0, size=10, source=None, sort_by=None,
@@ -70,16 +94,16 @@ def common_query__builder(start=0, size=10, source=None, sort_by=None,
         query["from"] = 0
 
     if return_top_author:
-        query["aggs"]["author_count"] = get_paper_aggregation_of_authors(size=top_author_size)
+        query["aggs"]["author_aggs"] = get_paper_aggregation_of_authors(size=top_author_size)
 
     if return_fos_aggs:
-        query["aggs"]["fos_count"] = get_paper_aggregation_of_fields_of_study()
+        query["aggs"]["fos_aggs"] = get_paper_aggregation_of_fields_of_study()
 
     if return_venue_aggs:
-        query["aggs"]["venue_count"] = get_paper_aggregation_of_venues()
+        query["aggs"]["venue_aggs"] = get_paper_aggregation_of_venues()
 
     if return_year_aggs:
-        query["aggs"]["year_count"] = get_paper_aggregation_by_year()
+        query["aggs"]["year_aggs"] = get_paper_aggregation_by_year()
 
     print("COMMON_QUERY__BUILDER: ", query)
     return query
@@ -171,7 +195,7 @@ def search_paper_by_fos__builder(fields_of_study, fos_isShould=True):
             query["bool"]["should"].append({
                 "match": {
                     "fieldsOfStudy.keyword": {
-                        "query": fos
+                        "query": fos if fos != "Unknown" else ""
                     }
                 }
             })
@@ -185,7 +209,7 @@ def search_paper_by_fos__builder(fields_of_study, fos_isShould=True):
             query["bool"]["must"].append({
                 "match": {
                     "fieldsOfStudy.keyword": {
-                        "query": fos
+                        "query": fos if fos != "Unknown" else ""
                     }
                 }
             })
@@ -206,7 +230,7 @@ def search_paper_by_venues__builder(venues, venues_isShould=True):
             query["bool"]["should"].append({
                 "match": {
                     "venue.keyword": {
-                        "query": venue
+                        "query": venue if venue != "Anonymous" else ""
                     }
                 }
             })
@@ -217,12 +241,10 @@ def search_paper_by_venues__builder(venues, venues_isShould=True):
             }
         }
         for venue in venues:
-            if venue == "Anonymous":
-                venue = ""
             query["bool"]["must"].append({
                 "match": {
                     "venue.keyword": {
-                        "query": venue
+                        "query": venue if venue != "Anonymous" else ""
                     }
                 }
             })
@@ -233,21 +255,16 @@ def search_paper_by_venues__builder(venues, venues_isShould=True):
 def search_by_author__builder(authors, author_isShould):
     if author_isShould:
         query = {
-            "nested": {
-                "path": "authors",
-                "query": {
-                    "bool": {
-                        "should": []
-                    }
+                "bool": {
+                    "should": []
                 }
-            }
         }
         for author in authors:
-            query["nested"]["query"]["bool"]["should"].append(
+            query["bool"]["should"].append(
                 {
                     "match": {
                         "authors.authorId.keyword": {
-                            "query": author
+                            "query": author if author != "John Doe" else ""
                         }
                     }
                 }
@@ -256,13 +273,10 @@ def search_by_author__builder(authors, author_isShould):
         query = {"query": []}
         for author in authors:
             query["query"].append({
-                "nested": {
-                    "path": "authors",
-                    "query": {
-                        "match": {
-                            "authors.authorId.keyword": {
-                                "query": author
-                            }
+                "query": {
+                    "match": {
+                        "authors.authorId.keyword": {
+                            "query": author if author != "John Doe" else ""
                         }
                     }
                 }
@@ -273,8 +287,8 @@ def search_by_author__builder(authors, author_isShould):
 
 
 def get_paper_default_source():
-    return ["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
-            "title", "topics", "citations_count", "references_count", "authors_count",
+    return ["paperId", "doi", "abstract", "authors.name", "authors.authorId", "fieldsOfStudy",
+            "title", "topics.topicId", "topics.topic", "citations_count", "references_count", "authors_count",
             "pdf_url", "venue", "year"]
 
 
@@ -292,7 +306,7 @@ def get_paper_default_sort(sort_by="score"):
 def get_paper_aggregation_of_topics_and_year(topics_size=10, year_size=10):
     return {
         "terms": {
-            "field": "topics.topic.keyword",
+            "field": "topics.topic_name__id.keyword",
             "size": topics_size
         },
         "aggs": {
@@ -339,7 +353,7 @@ def get_paper_aggregation_by_year(size=10000):
             "field": "year",
             "size": size,
             "order": {
-                "_key": "asc"
+                "_count": "desc"
             }
         }
     }
@@ -347,23 +361,9 @@ def get_paper_aggregation_by_year(size=10000):
 
 def get_paper_aggregation_of_authors(size):
     return {
-        "nested": {
-            "path": "authors"
-        },
-        "aggs": {
-            "name": {
-                "terms": {
-                    "field": "authors.authorId.keyword",
-                    "size": size
-                },
-                "aggs": {
-                    "name": {
-                        "terms": {
-                            "field": "authors.name.keyword"
-                        }
-                    }
-                }
-            }
+        "terms": {
+            "field": "authors.author_name__id.keyword",
+            "size": size
         }
     }
 

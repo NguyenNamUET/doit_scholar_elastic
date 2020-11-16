@@ -3,8 +3,9 @@ from es_service.es_search.es_search_helpers import common_query__builder, \
     get_paper_aggregation_of_authors, \
     search_paper_year__builder, search_paper_by_fos__builder, search_by_author__builder, \
     search_paper_by_venues__builder, search_paper_title__builder, \
-    calculate_paper_hindex, get_paper_from_id, sum, get_citations_aggregation_by_year, \
-    get_citations_aggregation_by_year__S2
+    calculate_paper_hindex, get_paper_from_id, sum, \
+    get_citations_aggregation_by_year__S2, get_paper_default_source
+
 
 import requests
 import asyncio
@@ -16,44 +17,32 @@ PROXIES = {
 
 def count_authors(es, index):
     query = {
-        "size": 0,
-        "aggs": {
-            "author_aggs": {
-                "nested": {
-                    "path": "authors"
-                },
-                "aggs": {
-                    "author_count": {
-                        "value_count": {
-                            "field": "authors.authorId.keyword"
-                        }
-                    }
+              "size": 0,
+              "aggs": {
+                "author_count": {
+                  "value_count": {
+                    "field": "authors.authorId.keyword"
+                  }
                 }
+              }
             }
-        }
-    }
     res = es.search(index=index, body=query)
-    print("Get all authors result :", res)
-    return res["aggregations"]["author_aggs"]["author_count"]["value"]
+    print("COUNT AUTHORS result :", res)
+    return res["aggregations"]["author_count"]["value"]
 
 
 def get_some_papers(es, index, author_id, start=5, size=5):
     query = {
         "query": {
-            "nested": {
-                "path": "authors",
-                "query": {
-                    "match": {
-                        "authors.authorId.keyword": author_id  # 150080110
-                    }
+            "query": {
+                "match": {
+                    "authors.authorId.keyword": author_id  # 150080110
                 }
             }
         },
         "from": start,
         "size": size,
-        "_source": ["paperId", "doi", "abstract", "authors", "fieldsOfStudy",
-                    "title", "topics", "citations_count", "references_count", "authors_count",
-                    "pdf_url", "venue", "year"],
+        "_source": get_paper_default_source(),
     }
 
     res = es.search(index=index, body=query)
@@ -102,12 +91,9 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
             "bool": {
                 "must": [
                     {
-                        "nested": {
-                            "path": "authors",
-                            "query": {
-                                "match": {
-                                    "authors.authorId.keyword": author_id
-                                }
+                        "query": {
+                            "match": {
+                                "authors.authorId.keyword": author_id
                             }
                         }
                     }

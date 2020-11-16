@@ -25,7 +25,8 @@ def downloader(paper_url, paper_sitemap):
             "doi": s2paper["doi"],
             "influentialCitationCount": s2paper["influentialCitationCount"],
             "topics": [{"topic": topic["topic"],
-                        "topicId": topic["topicId"]}
+                        "topicId": topic["topicId"],
+                        "topic_name__id": topic["topic"]+"___"+topic["topicId"]}
                        for topic in s2paper["topics"]],
             "pdf_url": get_pdf_link_and_name(paper_url, sitemap_id)[0],
             "fieldsOfStudy": s2paper["fieldsOfStudy"],
@@ -38,7 +39,7 @@ def downloader(paper_url, paper_sitemap):
                            "doi": citation["doi"]
                            }
                           for citation in s2paper["citations"]],
-            "citations_count": len(s2paper["citations"]),
+            #"citations_count": len(s2paper["citations"]),
             "references": [{"paperId": reference["paperId"],
                            "isInfluential": reference["isInfluential"],
                            "intent": reference["intent"],
@@ -48,9 +49,11 @@ def downloader(paper_url, paper_sitemap):
                            "doi": reference["doi"]
                            }
                            for reference in s2paper["references"]],
-            "references_count": len(s2paper["references"]),
+            #"references_count": len(s2paper["references"]),
             "authors": [{"authorId": author["authorId"],
-                         "name": author["name"]} for author in s2paper["authors"]],
+                         "name": author["name"],
+                         "author_name__id": author["name"]+"___"+author["authorId"]
+                         } for author in s2paper["authors"]],
             "authors_count": len(s2paper["authors"])
         }
 
@@ -67,17 +70,34 @@ def download_data(start, end=None):
         for paper_sitemap in paper_sitemaps:
             paper_urls = crawl_second_sitemap(paper_sitemap)
             if paper_urls is not None:
-                urls_grouper = grouper(paper_urls, 100)
+                urls_grouper = grouper(paper_urls, 10)
                 for index, urls_group in enumerate(urls_grouper):
                     future_to_url = {executor.submit(downloader, paper_url,paper_sitemap): paper_url for paper_url in urls_group if
                                              paper_url is not None}
                     # Just ignore this
                     pbar = tqdm(concurrent.futures.as_completed(future_to_url), total=len(future_to_url), unit="paper")
                     for future in pbar:
-                        pbar.set_description("Paper_sitemap_{}_group_({}/310)".format(re.findall("\d+", paper_sitemap)[0],index))
+                        pbar.set_description("Paper_sitemap_{}_group_({}/3100)".format(re.findall("\d+", paper_sitemap)[0],index))
                         paper_url = future_to_url[future]
                         try:
                             paper_id = future.result()
                         except Exception as exc:
                             print('%r generated an exception: %s' % (paper_url, exc))
 
+
+
+if __name__ == '__main__':
+    # import requests
+    # from constants.constants import HEADERS, PROXY
+    # proxies = {
+    #     "http": PROXY
+    # }
+    # res = requests.get("https://api.semanticscholar.org/v1/paper/91aad3a56e1b5fb5b641b31e7e801948d5b267af", headers=HEADERS, proxies=proxies)
+    # print(res.json())
+    # import os
+    # from shared_utilities.utilities import load_jsonl_from_gz
+    # for file in os.listdir("/home/nguyennam/Downloads/data/20201113_222438/sitemap_0000000"):
+    #     paper = load_jsonl_from_gz("/home/nguyennam/Downloads/data/20201113_222438/sitemap_0000000/"+file)
+    #     if "paperId" not in paper.keys():
+    #         print(file, "/////", paper)
+    download_data(0)
