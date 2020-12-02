@@ -22,7 +22,8 @@ app = FastAPI()
 origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3000",
-    "http://51.210.251.250:3400"
+    "http://51.210.251.250:3400",
+    "https://compasify.com/"
 ]
 
 app.add_middleware(
@@ -56,8 +57,8 @@ class paperItem(BaseModel):
     end_year: Optional[int] = 2020
     return_year_aggs: Optional[bool] = False
     # Pagination
-    deep_pagination: Optional[bool] = False
-    last_paper_id: Optional[int] = 0
+    # deep_pagination: Optional[bool] = False
+    # last_paper_id: Optional[int] = 0
     # Top author aggs
     return_top_author: Optional[bool] = False
     top_author_size: Optional[int] = 10
@@ -69,7 +70,7 @@ class paperItem(BaseModel):
 
 
 class authorItem(BaseModel):
-    author_name: Optional[str] = ""
+    author_name: Optional[str] = Query(None)
     search_content: Optional[str] = Query(None)
     authors: Optional[List[str]] = Query(None)
     venues: Optional[List[str]] = Query(None)
@@ -150,7 +151,7 @@ def generateTopicsGraph(topics_size: Optional[int] = 10, year_size: Optional[int
 def statsCount(is_papers_count: Optional[bool] = False,
                is_authors_count: Optional[bool] = False,
                is_fos_count: Optional[bool] = False,
-               is_topics_count: Optional[bool] = False,):
+               is_topics_count: Optional[bool] = False, ):
     result = get_count_stats(es=elasticsearch_connection,
                              index=PAPER_DOCUMENT_INDEX,
                              is_papers_count=is_papers_count,
@@ -193,7 +194,6 @@ def searchPaperTitle(query: paperItem):
                              return_venue_aggs=query.return_venue_aggs,
                              from_year=query.from_year, end_year=query.end_year,
                              return_year_aggs=query.return_year_aggs,
-                             deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                              return_top_author=query.return_top_author, top_author_size=query.top_author_size)
 
     return result
@@ -206,7 +206,6 @@ def searchPaperAbstract(query: paperItem):
                                 start=query.start, size=query.size, source=query.source, sort_by=query.sort_by,
                                 return_fos_aggs=query.return_fos_aggs,
                                 return_year_aggs=query.return_year_aggs,
-                                deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                                 return_top_author=query.return_top_author, top_author_size=query.top_author_size)
 
     return result
@@ -218,20 +217,26 @@ def searchPaperFOS(query: paperItem):
                                        fields_of_study=query.fields_of_study, fos_isShould=query.fos_is_should,
                                        start=query.start, size=query.size, source=query.source, sort_by=query.sort_by,
                                        return_fos_aggs=query.return_fos_aggs,
-                                       deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
                                        return_top_author=query.return_top_author, top_author_size=query.top_author_size)
 
     return result
 
 
 @app.post("/s2api/papers/searchPaperByTopics")
-def searchPaperByTopics(query: paperItem):
+def searchPaperByTopics(query: paperItem, topics_size: Optional[int] = 10, year_size: Optional[int] = 10):
     result = search_by_topics(es=elasticsearch_connection, index=PAPER_DOCUMENT_INDEX,
                               topics=query.topics, topic_isShould=query.topic_is_should,
-                              start=query.start, size=query.size, source=query.source, sort_by=query.sort_by,
+                              topics_size=topics_size, year_size=year_size,
+                              search_content=query.search_content,
+                              authors=query.authors, author_isShould=query.author_is_should,
+                              return_top_author=query.return_top_author, top_author_size=query.top_author_size,
+                              fields_of_study=query.fields_of_study, fos_isShould=query.fos_is_should,
                               return_fos_aggs=query.return_fos_aggs,
-                              deep_pagination=query.deep_pagination, last_paper_id=query.last_paper_id,
-                              return_top_author=query.return_top_author, top_author_size=query.top_author_size)
+                              venues=query.venues, venues_isShould=query.venues_is_should,
+                              return_venue_aggs=query.return_venue_aggs,
+                              from_year=query.from_year, end_year=query.end_year,
+                              return_year_aggs=query.return_year_aggs,
+                              start=query.start, size=query.size, source=query.source, sort_by=query.sort_by)
 
     return result
 
@@ -274,6 +279,7 @@ def searchOnTyping(query: paperItem):
                               search_content=query.search_content,
                               authors=query.authors,
                               venues=query.venues,
+                              topics=query.topics,
                               size=query.size)
 
     return result
@@ -330,8 +336,7 @@ async def getAuthorById(author_id: str, query: authorItem):
                                     venues=query.venues, venues_isShould=query.venues_is_should,
                                     return_venue_aggs=query.return_venue_aggs,
                                     from_year=query.from_year, end_year=query.end_year,
-                                    return_year_aggs=query.return_year_aggs
-                                    )
+                                    return_year_aggs=query.return_year_aggs)
     return result
 
 

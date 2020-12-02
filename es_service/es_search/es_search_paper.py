@@ -21,7 +21,8 @@ PROXIES = {
 
 
 ##COUNTING FUNCTIONS
-def get_count_stats(es, index, is_papers_count=False, is_authors_count=False, is_fos_count=False, is_topics_count=False):
+def get_count_stats(es, index, is_papers_count=False, is_authors_count=False, is_fos_count=False,
+                    is_topics_count=False):
     res = {"papers_count": None, "authors_count": None,
            "fos_count": None, "topics_count": None}
     if is_papers_count:
@@ -193,7 +194,7 @@ def search_by_title(es, index, search_content,
                 }
             }
         }
-    #Empty search for Highlight FOS (all search bar not allowed empty search content)
+    # Empty search for Highlight FOS (all search bar not allowed empty search content)
     else:
         query = {"query":
             {"bool":
@@ -234,8 +235,9 @@ def search_by_title(es, index, search_content,
     print("SEARCH_BY_TITLE QUERY: ", query)
 
     result = es.search(index=index, body=query)
-    result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
-    #print("SEARCH_BY_TITLE RESULT: ", result)
+    if "aggregations" in result.keys():
+        result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
+    # print("SEARCH_BY_TITLE RESULT: ", result)
     if result["hits"]["total"]["value"] == 0:
         return {}
 
@@ -260,7 +262,8 @@ def search_by_abstract(es, index, search_content,
     print("SEARCH_BY_ABSTRACT QUERY: ", query)
 
     result = es.search(index=index, body=query)
-    result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
+    if "aggregations" in result.keys():
+        result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
     print("SEARCH_BY_ABSTRACT RESULT: ", result)
     if result["hits"]["total"]["value"] == 0:
         return {}
@@ -286,8 +289,10 @@ def search_by_fields_of_study(es, index,
     print("SEARCH_BY_FIELDS_OF_STUDY QUERY: ", query)
 
     result = es.search(index=index, body=query)
-    result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
+    if "aggregations" in result.keys():
+        result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
     print("SEARCH_BY_FIELDS_OF_STUDY RESULT: ", result)
+
     if result["hits"]["total"]["value"] == 0:
         return {}
 
@@ -318,9 +323,7 @@ def search_by_venue(es, index,
 
     if search_content is not None:
         title_query = {"bool":
-                           {"should":
-                                search_paper_title__builder(search_content)
-                            }
+                           {"should":search_paper_title__builder(search_content)}
                        }
         query["query"]["bool"]["must"].append(title_query)
 
@@ -352,9 +355,10 @@ def search_by_venue(es, index,
     print("SEARCH_BY_VENUE QUERY: ", query)
 
     result = es.search(index=index, body=query)
-    result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
-    result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
+    if "aggregations" in result.keys():
+        result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
     print("SEARCH_BY_VENUE RESULT: ", result)
+
     if result["hits"]["total"]["value"] == 0:
         return {}
 
@@ -363,22 +367,64 @@ def search_by_venue(es, index,
 
 def search_by_topics(es, index,
                      topics=None, topic_isShould=True,
-                     start=0, size=10, source=None, sort_by=None,
-                     return_fos_aggs=False,
-                     deep_pagination=False, last_paper_id=None,
-                     return_top_author=False, top_author_size=10):
+                     topics_size=10, year_size=10,
+                     search_content=None,
+                     authors=None, author_isShould=True, return_top_author=False, top_author_size=10,
+                     fields_of_study=None, fos_isShould=True, return_fos_aggs=False,
+                     venues=None, venues_isShould=True, return_venue_aggs=False,
+                     from_year=None, end_year=None, return_year_aggs=False,
+                     start=0, size=10, source=None, sort_by=None):
     common_query = common_query__builder(start=start, size=size, source=source, sort_by=sort_by,
                                          return_top_author=return_top_author, top_author_size=top_author_size,
                                          return_fos_aggs=return_fos_aggs,
-                                         deep_pagination=deep_pagination, last_paper_id=last_paper_id)
-    topic_query = search_paper_by_topics__builder(topics=topics,
-                                                  topic_isShould=topic_isShould)
-    query = {"query": topic_query}
+                                         return_venue_aggs=return_venue_aggs,
+                                         return_year_aggs=return_year_aggs)
+    topic_query = search_paper_by_topics__builder(topics=topics, topic_isShould=topic_isShould)
+    query = {
+        "query": {
+            "bool": {
+                "must": [topic_query]
+            }
+        }
+    }
+    if search_content is not None:
+        title_query = {"bool":
+                           {"should": search_paper_title__builder(search_content)}
+                       }
+        query["query"]["bool"]["must"].append(title_query)
+
+    if from_year is not None and end_year is not None:
+        year_query = search_paper_year__builder(from_year=from_year, end_year=end_year)
+        query["query"]["bool"]["must"].append(year_query)
+
+    if venues is not None:
+        venues_query = search_paper_by_venues__builder(venues=venues, venues_isShould=venues_isShould)
+
+        query["query"]["bool"]["must"].append(venues_query)
+
+    if fields_of_study is not None:
+        fos_query = search_paper_by_fos__builder(fields_of_study=fields_of_study,
+                                                 fos_isShould=fos_isShould)
+
+        query["query"]["bool"]["must"].append(fos_query)
+
+    if authors is not None:
+        authors_query = search_by_author__builder(authors=authors,
+                                                  author_isShould=author_isShould)
+        if author_isShould:
+            query["query"]["bool"]["must"].append(authors_query)
+        else:
+            for author_query in authors_query["query"]:
+                query["query"]["bool"]["must"].append(author_query)
+
     query.update(common_query)
     print("SEARCH_BY_TOPICS QUERY: ", query)
 
     result = es.search(index=index, body=query)
-    result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
+    if "aggregations" in result.keys():
+        result["aggregations"] = rebuild_name_id_aggs(result["aggregations"])
+
+    result["topics_chart"] = generate_topics_graph(es=es, index=index, topics_size=topics_size, year_size=year_size)
     print("SEARCH_BY_TOPICS RESULT: ", result)
     if result["hits"]["total"]["value"] == 0:
         return {}
@@ -389,18 +435,19 @@ def search_by_topics(es, index,
 def search_on_typing(es, index, search_content,
                      authors=None,
                      venues=None,
+                     topics=None,
                      size=10):
     common_query = common_query__builder(source=["paperId", "title", "citations_count"],
                                          sort_by=[{"citations_count": "desc"}],
                                          size=size)
     title_query = search_paper_title__builder(search_content=search_content)
     query = {"query":
-                {"bool":
-                    {"must": [
-                        {"bool": {"should": title_query}}
-                    ]
-                    }
-                }
+        {"bool":
+            {"must": [
+                {"bool": {"should": title_query}}
+            ]
+            }
+        }
     }
     query.update(common_query)
     if authors is not None:
@@ -422,6 +469,16 @@ def search_on_typing(es, index, search_content,
                     }
                 }
             })
+    elif topics is not None:
+        query["query"]["bool"]["must"].append(
+            {
+                "match": {
+                    "topics.topicId.keyword": {
+                        "query": topics[0]
+                    }
+                }
+            })
+
     print("SEARCH_ON_TYPING QUERY: ", query)
     result = es.search(index=index, body=query)
     if result["hits"]["total"]["value"] == 0:
@@ -567,6 +624,7 @@ def get_some_papers_for_homepage(es, index, size=10,
 
     return res
 
+
 ######################################### GENERATE GRAPHS ####################################
 def generate_graphs(es, index,
                     citations_graph=False, paper_id=None, citations_year_range=200,
@@ -621,11 +679,11 @@ def generate_topics_graph(es, index, topics_size=10, year_size=10):
         }
     }
     top_topics = es.search(index=index, body=query)["aggregations"]["topic_count"]["buckets"]
-    #format: {key: [name,count]}
+    # format: {key: [name,count]}
     res = [{"id": topic["key"].split("___")[1],
-             "name": topic["key"].split("___")[0],
-             "years_count": topic["years"]["buckets"]}
-            for topic in top_topics if topic["key"] != "" and topic["doc_count"] >= 100]
+            "name": topic["key"].split("___")[0],
+            "years_count": [{year["key"]: year["doc_count"]} for year in topic["years"]["buckets"]]}
+           for topic in top_topics if topic["key"] != "" and topic["doc_count"] >= 100]
     print("GENERATE_TOPICS_GRAPH RESULT: ", res)
     return res
 
@@ -653,8 +711,8 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
         # res = {"citations_chart": {bucket['key']:bucket['doc_count'] for bucket in query_res["aggregations"]["citation_year_count"]["buckets"]}}
 
         res = {"citations_chart": get_citations_aggregation_by_year__S2(
-                query_res["hits"]["hits"][0]["_source"]["citations"],
-                size=citations_year_range)}
+            query_res["hits"]["hits"][0]["_source"]["citations"],
+            size=citations_year_range)}
         return res
 
     # IF FOUND ON S2 API
@@ -670,8 +728,3 @@ def generate_citations_graph(es, index, paper_id, citations_year_range=200):
         except Exception as e:
             print(f"ERROR NOT FOUND {paper_id} ON MY API caused by", e)
             return {}
-
-
-if __name__ == '__main__':
-    from es_service.es_helpers.es_connection import elasticsearch_connection
-    print(generate_topics_graph(elasticsearch_connection, "paper"))

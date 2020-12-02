@@ -4,8 +4,7 @@ from es_service.es_search.es_search_helpers import common_query__builder, \
     search_paper_year__builder, search_paper_by_fos__builder, search_by_author__builder, \
     search_paper_by_venues__builder, search_paper_title__builder, \
     calculate_paper_hindex, get_paper_from_id, sum, \
-    get_citations_aggregation_by_year__S2, get_paper_default_source
-
+    get_citations_aggregation_by_year__S2, get_paper_default_source, rebuild_name_id_aggs
 
 import requests
 import asyncio
@@ -91,10 +90,8 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
             "bool": {
                 "must": [
                     {
-                        "query": {
-                            "match": {
-                                "authors.authorId.keyword": author_id
-                            }
+                        "match": {
+                            "authors.authorId.keyword": author_id
                         }
                     }
                 ]
@@ -143,8 +140,10 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
         year_list = []
         for paper in res["hits"]["hits"]:
             for cit in paper["_source"]["citations"]:
+
                 year_list.append(cit.get("year", 0))
-        print(year_list)
+        if "aggregations" in res.keys():
+            res["aggregations"] = rebuild_name_id_aggs(res["aggregations"])
         res["aggregations"]["citations_chart"] = get_citations_aggregation_by_year__S2(year_list, size=200)
         #Remove citaions key from paper
         res["hits"]["hits"] = [{k: v for k, v in p.items() if k != "citations"} for p in res["hits"]["hits"]]
@@ -153,6 +152,7 @@ async def get_author_by_id(es, index, author_id, start=0, size=5,
         res["name"] = [p["name"] for p in res["hits"]["hits"][0]["_source"]["authors"] if p["authorId"] == author_id][0]
         res["h_index"] = calculate_paper_hindex([p["_source"]["citations_count"] for p in res["hits"]["hits"]])
 
+        print("GET_AUTHOR_BY_ID result", res)
         return res
     else:
         print(f"NOT FOUND AUTHOR {author_id} ON MY API")
