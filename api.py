@@ -17,6 +17,8 @@ from es_service.es_search.es_search_paper import get_some_papers_for_homepage
 from es_service.es_search.es_search_author import count_authors, get_author_by_id, get_some_papers, \
     get_some_authors_for_homepage
 
+from sitemap_maker.create_paper_sitemap_api import make_paper_sitemap
+
 app = FastAPI()
 
 origins = [
@@ -355,4 +357,11 @@ async def getSomeCitations(paperID: str, start: Optional[int] = 0, size: Optiona
                                       paper_id=paperID,
                                       start=start, size=size)
 
+    return result
+
+
+################################ SITEMAPS MAKER ###############################
+@app.get("/s2api/sitemaps/getPaperSitemaps")
+def getPaperSitemaps():
+    result = make_paper_sitemap()
     return result
