@@ -3,12 +3,9 @@ import datetime
 from jinja2 import Template
 import re
 from shared_utilities.utilities import store_gz, load_jsonl_from_gz
-
+from constants.constants import STORAGE_PATH
 from datetime import datetime
 
-
-PATH = "/home/nguyennam/Downloads/data/20201204_115723"
-STORAGE_PATH = "/home/nguyennam/Downloads/data/sitemaps"
 HOST_NAME = "http://localhost:3000"
 
 def make_sitemap_paper_title(title):
@@ -26,7 +23,7 @@ def make_paper_sitemap():
         "hostname": HOST_NAME,
         "sitemaps": []
       }
-    for sitemap in os.listdir(PATH):
+    for sitemap in os.listdir(STORAGE_PATH):
         loc = sitemap.replace("_","-paper-")
         sitemap_index_obj = {
             'path': f"/{loc}.xml",
@@ -34,9 +31,9 @@ def make_paper_sitemap():
             'exclude': ["/search", "/vi/search", '/', '/vi'],
             'routes': []
         }
-        for paper_file in os.listdir((os.path.join(PATH, sitemap)))[:2]:
+        for paper_file in os.listdir((os.path.join(STORAGE_PATH, sitemap)))[:2]:
             if re.search(".json.gz", paper_file) is not None:
-                paper = load_jsonl_from_gz(os.path.join(PATH, sitemap, paper_file))
+                paper = load_jsonl_from_gz(os.path.join(STORAGE_PATH, sitemap, paper_file))
                 title = make_sitemap_paper_title(paper["title"])
                 id = paper["paperId"]
                 paper_sitemap_obj = {
@@ -54,4 +51,4 @@ def make_paper_sitemap():
 
 
 if __name__ == '__main__':
-    print(make_paper_sitemap())
+    print(os.listdir("/"))

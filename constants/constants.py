@@ -5,7 +5,7 @@ FILE_VERSION = str(VERSION)[:10].replace("-", "") + "_" + str(VERSION)[11:19].re
 
 BASE_SCIHUB = "https://scihub.wikicn.top/"
 PAPER_METADATA_PATH = "/home/nguyennam/Downloads/data/{}".format(FILE_VERSION)  # /storage/dataStorage/{}
-
+STORAGE_PATH = "/storage/dataStorage/20201116_053308"
 PROXY = "http://lum-customer-onesiness-zone-static10:kz53twdp74rd@zproxy.lum-superproxy.io:22225"
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0",
            "Connection": "keep-alive",

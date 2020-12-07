@@ -25,7 +25,7 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3000",
     "http://51.210.251.250:3400",
-    "https://compasify.com/"
+    "https://compasify.com"
 ]
 
 app.add_middleware(
